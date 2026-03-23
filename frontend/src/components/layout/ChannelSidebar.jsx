@@ -65,9 +65,10 @@ const ChannelSidebar = ({ wsHook, webRTCHook }) => {
         <div 
           onClick={() => setShowServerDropdown(!showServerDropdown)}
           style={{
-            padding: '16px',
-            borderBottom: '1px solid var(--discord-divider)',
-            fontWeight: 600,
+            padding: '12px 16px',
+            borderBottom: '1px solid var(--discord-bg-primary)',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+            fontWeight: 700,
             fontSize: 16,
             color: 'var(--discord-text-primary)',
             cursor: 'pointer',
@@ -78,13 +79,13 @@ const ChannelSidebar = ({ wsHook, webRTCHook }) => {
           }}
         >
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentServer.name}</span>
-          <span style={{ fontSize: 18, color: 'var(--discord-text-muted)', transform: showServerDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>⌄</span>
+          <span style={{ fontSize: 18, color: 'var(--discord-text-muted)', transform: showServerDropdown ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}>⚙️</span>
           
           {/* Server Dropdown menu */}
           {showServerDropdown && (
             <div 
               style={{
-                position: 'absolute', top: 56, left: 8, right: 8, background: 'var(--discord-bg)',
+                position: 'absolute', top: 56, left: 8, right: 8, background: 'var(--discord-bg-primary)',
                 borderRadius: 4, padding: 8, zIndex: 100, boxShadow: '0 8px 16px rgba(0,0,0,0.5)'
               }}
               onClick={(e) => e.stopPropagation()}
@@ -183,7 +184,7 @@ const ChannelSidebar = ({ wsHook, webRTCHook }) => {
         {/* Footer user info */}
         <div style={{
           padding: '10px 12px',
-          background: 'rgba(0,0,0,0.2)',
+          background: 'var(--discord-user-area)',
           display: 'flex',
           alignItems: 'center',
           gap: 10,
@@ -265,7 +266,7 @@ const ChannelItem = ({ channel, active, onSelect, isAdmin, onSettings }) => {
       {isAdmin && (
         <span
           onClick={(e) => { e.stopPropagation(); onSettings(); }}
-          style={{ opacity: 0, transition: 'opacity 0.1s', fontSize: 14, color: 'var(--discord-text-muted)' }}
+          style={{ transition: 'opacity 0.2s', fontSize: 16, color: 'var(--discord-text-muted)' }}
           className="channel-delete-btn"
           title="Cài đặt kênh"
         >⚙️</span>

@@ -17,6 +17,7 @@
   --discord-text-muted: #949ba4;
   --discord-divider: #3f4147;
   --discord-input-bg: #383a40;
+  --discord-user-area: #232428;
   --discord-hover: rgba(255,255,255,0.06);
   --discord-active: rgba(255,255,255,0.1);
 }
@@ -48,7 +49,7 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--discord-divider);
+  background: var(--discord-bg-primary);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
@@ -122,11 +123,11 @@ body {
 .channel-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   padding: 6px 8px;
   border-radius: 4px;
   cursor: pointer;
-  color: var(--discord-text-secondary);
+  color: var(--discord-text-muted);
   font-size: 15px;
   transition: all 0.1s;
 }
@@ -139,6 +140,19 @@ body {
 .channel-item.active {
   background: var(--discord-active);
   color: var(--discord-text-primary);
+}
+
+.channel-delete-btn {
+  opacity: 0;
+  cursor: pointer;
+}
+
+.channel-delete-btn:hover {
+  color: var(--discord-text-primary) !important;
+}
+
+.channel-item:hover .channel-delete-btn {
+  opacity: 1;
 }
 
 /* Message styles */
@@ -163,7 +177,7 @@ body {
   position: absolute;
   top: -16px;
   right: 16px;
-  background: var(--discord-bg-secondary);
+  background: var(--discord-bg-primary);
   border: 1px solid var(--discord-divider);
   border-radius: 6px;
   overflow: hidden;
@@ -184,9 +198,8 @@ body {
 
 /* Input field */
 .chat-input {
-  background: var(--discord-input-bg);
+  background: transparent;
   border: none;
-  border-radius: 8px;
   color: var(--discord-text-primary);
   padding: 11px 16px;
   width: 100%;

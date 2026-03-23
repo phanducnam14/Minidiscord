@@ -146,12 +146,18 @@ const ChatInput = ({ wsHook, scrollToBottom }) => {
           onClick={() => fileInputRef.current?.click()}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--discord-text-muted)', fontSize: 22, padding: '4px 8px',
-            borderRadius: 4, transition: 'color 0.1s',
+            padding: '4px 8px', transition: 'transform 0.1s',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}
           title="Đính kèm file"
           disabled={isUploading}
-        >📎</button>
+        >
+          <div style={{
+            width: 24, height: 24, borderRadius: '50%', background: 'var(--discord-text-muted)',
+            color: 'var(--discord-bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 18, fontWeight: 700, paddingBottom: 2
+          }}>+</div>
+        </button>
 
         <input
           ref={fileInputRef}

@@ -45,10 +45,10 @@ const MessageList = ({ messages, currentUserId, onRevoke }) => {
             />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
-                <span style={{ fontWeight: 600, fontSize: 15, color: 'var(--discord-text-primary)' }}>
+                <span style={{ fontWeight: 500, fontSize: 16, color: 'var(--discord-text-primary)' }}>
                   {group.header.senderName}
                 </span>
-                <span style={{ fontSize: 11, color: 'var(--discord-text-muted)' }}>
+                <span style={{ fontSize: 12, color: 'var(--discord-text-muted)' }}>
                   {formatTime(group.header.createdAt)}
                 </span>
               </div>

@@ -15,7 +15,7 @@ const useWebSocket = () => {
   useEffect(() => {
     const client = new Client({
       // Dùng SockJS factory để fallback về HTTP polling nếu WS không khả dụng
-      webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+      webSocketFactory: () => new SockJS(`http://${window.location.hostname}:8080/ws`),
       reconnectDelay: 5000,
       onConnect: () => {
         console.log('[WebSocket] Kết nối thành công');

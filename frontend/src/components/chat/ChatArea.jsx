@@ -140,14 +140,15 @@ const ChatArea = ({ wsHook }) => {
       {/* Channel header */}
       <div style={{
         padding: '12px 16px',
-        borderBottom: '1px solid var(--discord-divider)',
+        borderBottom: '1px solid var(--discord-bg-primary)',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
         display: 'flex',
         alignItems: 'center',
         gap: 8,
         flexShrink: 0,
       }}>
-        <span style={{ fontSize: 20, color: 'var(--discord-text-muted)' }}>#</span>
-        <span style={{ fontWeight: 600, fontSize: 16 }}>{currentChannel.name}</span>
+        <span style={{ fontSize: 24, color: 'var(--discord-text-muted)' }}>#</span>
+        <span style={{ fontWeight: 700, fontSize: 16 }}>{currentChannel.name}</span>
       </div>
 
       {/* Message list với scroll */}

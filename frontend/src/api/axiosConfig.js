@@ -11,7 +11,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Backend OAuth2 login page
-      window.location.href = 'http://localhost:8080/oauth2/authorization/google';
+      window.location.href = `http://${window.location.hostname}:8080/oauth2/authorization/google`;
     }
     return Promise.reject(error);
   }
