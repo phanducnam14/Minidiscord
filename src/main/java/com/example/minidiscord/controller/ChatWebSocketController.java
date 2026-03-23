@@ -23,8 +23,8 @@ public class ChatWebSocketController {
     @MessageMapping("/chat/{serverId}/{channelId}")
     @SendTo("/topic/channel/{serverId}/{channelId}")
     public ChatMessageDTO handleChatMessage(
-            @DestinationVariable String serverId,
-            @DestinationVariable String channelId,
+            @DestinationVariable("serverId") String serverId,
+            @DestinationVariable("channelId") String channelId,
             ChatMessageDTO message) {
         
         // Save message to database
@@ -58,8 +58,8 @@ public class ChatWebSocketController {
     @MessageMapping("/typing/{serverId}/{channelId}")
     @SendTo("/topic/typing/{serverId}/{channelId}")
     public ChatMessageDTO handleTypingIndicator(
-            @DestinationVariable String serverId,
-            @DestinationVariable String channelId,
+            @DestinationVariable("serverId") String serverId,
+            @DestinationVariable("channelId") String channelId,
             ChatMessageDTO message) {
         
         message.setAction("typing");

@@ -20,9 +20,9 @@ public class MessageController {
      */
     @GetMapping("/{channelId}/messages")
     public ResponseEntity<List<MessageDTO>> getMessages(
-            @PathVariable String channelId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size) {
+            @PathVariable("channelId") String channelId,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "50") int size) {
         List<MessageDTO> messages = messageService.getMessages(channelId, page, size);
         return ResponseEntity.ok(messages);
     }
@@ -32,7 +32,7 @@ public class MessageController {
      * (được quản lý in-memory bởi VoiceWebSocketController)
      */
     @GetMapping("/{channelId}/participants")
-    public ResponseEntity<List<String>> getVoiceParticipants(@PathVariable String channelId) {
+    public ResponseEntity<List<String>> getVoiceParticipants(@PathVariable("channelId") String channelId) {
         // Delegate sang VoiceWebSocketController thông qua static map
         List<String> participants = com.example.minidiscord.controller.VoiceWebSocketController.getParticipants(channelId);
         return ResponseEntity.ok(participants);

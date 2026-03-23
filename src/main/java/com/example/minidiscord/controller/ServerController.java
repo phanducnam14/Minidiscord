@@ -49,7 +49,7 @@ public class ServerController {
      */
     @PostMapping("/{serverId}/join")
     public ResponseEntity<ServerDTO> joinServer(
-            @PathVariable String serverId,
+            @PathVariable("serverId") String serverId,
             @AuthenticationPrincipal OAuth2User principal) {
         User user = getCurrentUser(principal);
         ServerDTO server = serverService.joinServer(serverId, user.getId());
@@ -60,7 +60,7 @@ public class ServerController {
      * Danh sách thành viên của server
      */
     @GetMapping("/{serverId}/members")
-    public ResponseEntity<List<MemberDTO>> getMembers(@PathVariable String serverId) {
+    public ResponseEntity<List<MemberDTO>> getMembers(@PathVariable("serverId") String serverId) {
         return ResponseEntity.ok(serverService.getMembers(serverId));
     }
 
@@ -68,7 +68,7 @@ public class ServerController {
      * Thông tin cơ bản server
      */
     @GetMapping("/{serverId}")
-    public ResponseEntity<ServerDTO> getServer(@PathVariable String serverId) {
+    public ResponseEntity<ServerDTO> getServer(@PathVariable("serverId") String serverId) {
         return ResponseEntity.ok(serverService.getServer(serverId));
     }
 
@@ -77,7 +77,7 @@ public class ServerController {
      */
     @PutMapping("/{serverId}")
     public ResponseEntity<ServerDTO> updateServer(
-            @PathVariable String serverId,
+            @PathVariable("serverId") String serverId,
             @RequestBody CreateServerRequest request,
             @AuthenticationPrincipal OAuth2User principal) {
         User user = getCurrentUser(principal);
@@ -92,7 +92,7 @@ public class ServerController {
      */
     @DeleteMapping("/{serverId}")
     public ResponseEntity<Void> deleteServer(
-            @PathVariable String serverId,
+            @PathVariable("serverId") String serverId,
             @AuthenticationPrincipal OAuth2User principal) {
         User user = getCurrentUser(principal);
         boolean isOwner = serverService.findById(serverId)

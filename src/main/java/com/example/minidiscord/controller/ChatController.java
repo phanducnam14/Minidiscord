@@ -32,7 +32,7 @@ public class ChatController {
      */
     @MessageMapping("/chat/{channelId}")
     public void handleChatMessage(
-            @DestinationVariable String channelId,
+            @DestinationVariable("channelId") String channelId,
             ChatMessage chatMessage,
             Principal principal) {
         // Lấy thông tin user từ session
@@ -76,8 +76,8 @@ public class ChatController {
      */
     @MessageMapping("/chat/{channelId}/revoke/{messageId}")
     public void revokeMessage(
-            @DestinationVariable String channelId,
-            @DestinationVariable String messageId,
+            @DestinationVariable("channelId") String channelId,
+            @DestinationVariable("messageId") String messageId,
             Principal principal) {
         User user = getUserFromPrincipal(principal);
         if (user == null) return;
@@ -100,7 +100,7 @@ public class ChatController {
      */
     @MessageMapping("/chat/{channelId}/typing")
     public void handleTyping(
-            @DestinationVariable String channelId,
+            @DestinationVariable("channelId") String channelId,
             Principal principal) {
         User user = getUserFromPrincipal(principal);
         if (user == null) return;

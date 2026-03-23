@@ -28,7 +28,7 @@ public class ChannelController {
      */
     @PostMapping
     public ResponseEntity<ChannelDTO> createChannel(
-            @PathVariable String serverId,
+            @PathVariable("serverId") String serverId,
             @RequestBody CreateChannelRequest request,
             @AuthenticationPrincipal OAuth2User principal) {
         User user = getCurrentUser(principal);
@@ -44,7 +44,7 @@ public class ChannelController {
      * Danh sách channel của server
      */
     @GetMapping
-    public ResponseEntity<List<ChannelDTO>> getChannels(@PathVariable String serverId) {
+    public ResponseEntity<List<ChannelDTO>> getChannels(@PathVariable("serverId") String serverId) {
         return ResponseEntity.ok(channelService.getChannelsByServer(serverId));
     }
 
@@ -53,8 +53,8 @@ public class ChannelController {
      */
     @DeleteMapping("/{channelId}")
     public ResponseEntity<Void> deleteChannel(
-            @PathVariable String serverId,
-            @PathVariable String channelId,
+            @PathVariable("serverId") String serverId,
+            @PathVariable("channelId") String channelId,
             @AuthenticationPrincipal OAuth2User principal) {
         User user = getCurrentUser(principal);
         if (!serverService.isOwnerOrAdmin(serverId, user.getId())) {
@@ -71,8 +71,8 @@ public class ChannelController {
      */
     @PutMapping("/{channelId}")
     public ResponseEntity<ChannelDTO> updateChannel(
-            @PathVariable String serverId,
-            @PathVariable String channelId,
+            @PathVariable("serverId") String serverId,
+            @PathVariable("channelId") String channelId,
             @RequestBody CreateChannelRequest request,
             @AuthenticationPrincipal OAuth2User principal) {
         User user = getCurrentUser(principal);

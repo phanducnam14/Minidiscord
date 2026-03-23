@@ -35,7 +35,7 @@ public class VoiceWebSocketController {
      */
     @MessageMapping("/voice/{channelId}/join")
     public void joinVoiceChannel(
-            @DestinationVariable String channelId,
+            @DestinationVariable("channelId") String channelId,
             Principal principal) {
         User user = getUserFromPrincipal(principal);
         if (user == null) return;
@@ -64,7 +64,7 @@ public class VoiceWebSocketController {
      */
     @MessageMapping("/voice/{channelId}/leave")
     public void leaveVoiceChannel(
-            @DestinationVariable String channelId,
+            @DestinationVariable("channelId") String channelId,
             Principal principal) {
         User user = getUserFromPrincipal(principal);
         if (user == null) return;
