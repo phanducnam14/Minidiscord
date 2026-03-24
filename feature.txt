@@ -1,0 +1,104 @@
+Phân công chức năng dự án Mini Discord
+1️⃣ Dev 1 – Phan Đức Nam
+Chức năng: Authentication (Đăng nhập hệ thống)
+
+Nhiệm vụ:
+
+Đăng nhập bằng Google OAuth
+
+Lưu thông tin người dùng (name, email, avatar)
+
+Quản lý session đăng nhập
+
+Logout
+
+Hiển thị profile người dùng
+
+Vai trò trong hệ thống:
+
+Đây là chức năng nền tảng, các chức năng khác chỉ hoạt động khi người dùng đã đăng nhập.
+
+2️⃣ Dev 2 – Tân & Nam
+Chức năng: Server & Channel Management
+
+Nhiệm vụ:
+
+Tạo Server
+
+Tạo Channel Chat
+
+Hiển thị danh sách server
+
+Hiển thị danh sách channel trong server
+
+Tham gia server
+
+Vai trò:
+
+Tạo không gian giao tiếp cho người dùng trong hệ thống.
+
+3️⃣ Dev 3 – Thuận
+Chức năng: Chat & Media + Call
+
+Nhiệm vụ:
+
+Chat
+
+Gửi tin nhắn realtime
+
+Hiển thị lịch sử tin nhắn
+
+Gửi hình ảnh
+
+Call
+
+Voice Call
+
+Video Call
+
+Join / Leave Call
+
+Vai trò:
+
+Là chức năng giao tiếp chính của hệ thống.
+
+4️⃣ Dev 4 – Sang
+Chức năng: Member List + Online Status
+
+Nhiệm vụ:
+
+Hiển thị danh sách thành viên trong server
+
+Hiển thị avatar và tên người dùng
+
+Hiển thị trạng thái online / offline
+
+Cập nhật trạng thái khi người dùng đăng nhập hoặc thoát hệ thống
+
+Vai trò:
+
+Giúp người dùng biết ai đang hoạt động trong server, hỗ trợ giao tiếp và tương tác giữa các thành viên.
+
+5️⃣ Tester – Thắng
+
+Nhiệm vụ:
+
+Kiểm tra các chức năng của hệ thống:
+
+Đăng nhập Google
+
+Tạo Server
+
+Tạo Channel
+
+Chat
+
+Gửi hình ảnh
+
+Voice Call / Video Call
+
+Hiển thị danh sách thành viên
+
+Phát hiện lỗi trong quá trình sử dụng
+
+Ghi nhận và báo cáo lỗi cho nhóm phát triển
