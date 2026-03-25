@@ -68,6 +68,11 @@ const ChatArea = ({ wsHook }) => {
             setMessages((prev) =>
               prev.map((m) => m.id === msg.messageId ? { ...m, revoked: true } : m)
             );
+          } else if (msg.type === 'REACTION') {
+            // Cập nhật reactions cho tin nhắn cụ thể
+            setMessages((prev) =>
+              prev.map((m) => m.id === msg.messageId ? { ...m, reactions: msg.reactions } : m)
+            );
           }
         }
       );
@@ -133,6 +138,10 @@ const ChatArea = ({ wsHook }) => {
     wsHook?.publish(`/app/chat/${currentChannel.id}/revoke/${messageId}`, {});
   };
 
+  const handleReaction = (messageId, emoji) => {
+    wsHook?.publish(`/app/chat/${currentChannel.id}/reaction/${messageId}`, { content: emoji });
+  };
+
   if (!currentChannel) return null;
 
   return (
@@ -165,6 +174,7 @@ const ChatArea = ({ wsHook }) => {
           messages={messages}
           currentUserId={currentUser?.id}
           onRevoke={handleRevoke}
+          onReaction={handleReaction}
         />
         <div ref={bottomRef} />
       </div>

@@ -25,15 +25,33 @@ public class UserService {
 
         Optional<User> existing = userRepository.findByGoogleId(googleId);
         if (existing.isPresent()) {
-            // Cập nhật thông tin mới nhất từ Google
+            // Cập nhật thông tin mới nhất từ Google (chỉ cập nhật nếu chưa có thông tin tùy chỉnh hoặc muốn sync)
             User user = existing.get();
-            user.setDisplayName(displayName);
-            user.setAvatarUrl(avatarUrl);
+            // Nếu bạn muốn giữ thông tin cá nhân của Discord thì có thể bỏ qua bước sync này
+            // user.setDisplayName(displayName);
+            // user.setAvatarUrl(avatarUrl);
             return userRepository.save(user);
         }
 
         User newUser = new User(googleId, email, displayName, avatarUrl);
         return userRepository.save(newUser);
+    }
+
+    /**
+     * Cập nhật thông tin người dùng
+     */
+    public User updateUser(String userId, String displayName, String avatarUrl) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
+        
+        if (displayName != null && !displayName.trim().isEmpty()) {
+            user.setDisplayName(displayName);
+        }
+        if (avatarUrl != null) {
+            user.setAvatarUrl(avatarUrl);
+        }
+        
+        return userRepository.save(user);
     }
 
     public Optional<User> findById(String id) {

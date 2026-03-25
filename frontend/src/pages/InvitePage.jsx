@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import useUserStore from '../store/useUserStore';
 import useServerStore from '../store/useServerStore';
@@ -7,11 +7,13 @@ import useServerStore from '../store/useServerStore';
 const InvitePage = () => {
   const { serverId } = useParams();
   const navigate = useNavigate();
-  const { currentUser } = useUserStore();
+  const location = useLocation();
+  const { currentUser, setCurrentUser } = useUserStore();
   const { addServer, setCurrentServer } = useServerStore();
   const [serverInfo, setServerInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const hasAutoJoined = useRef(false);
 
   useEffect(() => {
     const fetchServerInfo = async () => {
@@ -24,8 +26,28 @@ const InvitePage = () => {
         setLoading(false);
       }
     };
+    
+    const checkAuth = async () => {
+      if (!currentUser) {
+        try {
+          const res = await api.get('/auth/me');
+          setCurrentUser(res.data);
+        } catch (err) {
+          // Chưa đăng nhập, bỏ qua
+        }
+      }
+    };
+
     fetchServerInfo();
+    checkAuth();
   }, [serverId]);
+
+  useEffect(() => {
+    if (location.state?.autoJoin && currentUser && serverInfo && !loading && !hasAutoJoined.current) {
+      hasAutoJoined.current = true;
+      handleJoin();
+    }
+  }, [location.state, currentUser, serverInfo, loading]);
 
   const handleJoin = async () => {
     if (!currentUser) {

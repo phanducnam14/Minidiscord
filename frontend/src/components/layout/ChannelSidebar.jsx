@@ -5,11 +5,8 @@ import CreateChannelModal from '../modals/CreateChannelModal';
 import ServerSettingsModal from '../modals/ServerSettingsModal';
 import ChannelSettingsModal from '../modals/ChannelSettingsModal';
 import InviteModal from '../modals/InviteModal';
+import ProfileModal from '../modals/ProfileModal';
 
-/**
- * Sidebar hiển thị danh sách channels nhóm theo TEXT/VOICE
- * Phía dưới có footer thông tin user
- */
 const ChannelSidebar = ({ wsHook, webRTCHook }) => {
   const { currentServer, channels, currentChannel, setCurrentChannel, removeChannel } = useServerStore();
   const { currentUser } = useUserStore();
@@ -18,6 +15,7 @@ const ChannelSidebar = ({ wsHook, webRTCHook }) => {
   const [showServerSettings, setShowServerSettings] = useState(false);
   const [showChannelSettings, setShowChannelSettings] = useState(null);
   const [showInvite, setShowInvite] = useState(false);
+  const [showProfileSettings, setShowProfileSettings] = useState(false);
 
   const { isMicOn, isCamOn, isScreenSharing, toggleMic, toggleCamera, toggleScreenShare, currentChannelId } = webRTCHook || {};
 
@@ -181,59 +179,105 @@ const ChannelSidebar = ({ wsHook, webRTCHook }) => {
           </div>
         </div>
 
+        {/* Voice Connection Status & Controls (Discord style) */}
+        {currentChannelId && (
+          <div style={{
+            padding: '8px 12px',
+            background: 'var(--discord-user-area)',
+            borderBottom: '1px solid var(--discord-divider)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--discord-green)' }}>
+                  🟢 Thoại đã kết nối
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--discord-text-muted)' }}>
+                  {currentChannel?.name || 'Kênh thoại'}
+                </span>
+              </div>
+              <button 
+                onClick={handleLeaveVoice}
+                style={{ background: 'transparent', border: 'none', color: 'var(--discord-text-secondary)', cursor: 'pointer', fontSize: 18 }}
+                title="Ngắt kết nối"
+              >
+                📞
+              </button>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-around', background: 'var(--discord-bg-primary)', borderRadius: 4, padding: '4px' }}>
+              <button
+                onClick={toggleMic}
+                style={{ background: 'transparent', border: 'none', color: isMicOn ? 'var(--discord-text-secondary)' : 'var(--discord-red)', cursor: 'pointer', padding: '6px' }}
+                title={isMicOn ? 'Tắt Mic' : 'Bật Mic'}
+              >
+                {isMicOn ? '🎤' : '🔇'}
+              </button>
+              <button
+                onClick={toggleCamera}
+                style={{ background: 'transparent', border: 'none', color: isCamOn ? 'var(--discord-text-secondary)' : 'var(--discord-red)', cursor: 'pointer', padding: '6px' }}
+                title={isCamOn ? 'Tắt Camera' : 'Bật Camera'}
+              >
+                {isCamOn ? '📷' : '🚫'}
+              </button>
+              <button
+                onClick={toggleScreenShare}
+                style={{ background: 'transparent', border: 'none', color: isScreenSharing ? 'var(--discord-green)' : 'var(--discord-text-secondary)', cursor: 'pointer', padding: '6px' }}
+                title={isScreenSharing ? 'Dừng Share' : 'Share Màn Hình'}
+              >
+                {isScreenSharing ? '💻' : '📺'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Footer user info */}
         <div style={{
-          padding: '10px 12px',
+          padding: '8px 10px',
           background: 'var(--discord-user-area)',
           display: 'flex',
           alignItems: 'center',
-          gap: 10,
+          gap: 8,
         }}>
-          <img
-            src={currentUser?.avatarUrl || 'https://via.placeholder.com/32'}
-            alt={currentUser?.displayName}
-            className="avatar"
-            style={{ width: 32, height: 32 }}
-          />
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--discord-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ position: 'relative' }}>
+            <img
+              src={currentUser?.avatarUrl || 'https://via.placeholder.com/32'}
+              alt={currentUser?.displayName}
+              className="avatar"
+              style={{ width: 32, height: 32, borderRadius: '50%' }}
+            />
+            <div style={{ 
+              position: 'absolute', bottom: -2, right: -2, 
+              width: 12, height: 12, borderRadius: '50%', 
+              background: 'var(--discord-green)', border: '2px solid var(--discord-user-area)' 
+            }}></div>
+          </div>
+          
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--discord-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {currentUser?.displayName}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--discord-text-muted)' }}>
-              🟢 Online
+            <div style={{ fontSize: 11, color: 'var(--discord-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              Online
             </div>
           </div>
-          {/* Footer user info */}
-          <div style={{ display: 'flex', gap: 4 }}>
-            {currentChannelId && (
-              <>
-                <button
-                  onClick={toggleMic}
-                  style={{ background: 'transparent', border: 'none', color: isMicOn ? 'var(--discord-text-secondary)' : 'var(--discord-red)', cursor: 'pointer', fontSize: 16, padding: '4px', borderRadius: 4 }}
-                  title={isMicOn ? 'Tắt Mic' : 'Bật Mic'}
-                >
-                  {isMicOn ? '🎤' : '🔇'}
-                </button>
-                <button
-                  onClick={toggleCamera}
-                  style={{ background: 'transparent', border: 'none', color: isCamOn ? 'var(--discord-text-secondary)' : 'var(--discord-red)', cursor: 'pointer', fontSize: 16, padding: '4px', borderRadius: 4 }}
-                  title={isCamOn ? 'Tắt Camera' : 'Bật Camera'}
-                >
-                  {isCamOn ? '📷' : '🚫'}
-                </button>
-                <button
-                  onClick={toggleScreenShare}
-                  style={{ background: 'transparent', border: 'none', color: isScreenSharing ? 'var(--discord-green)' : 'var(--discord-text-secondary)', cursor: 'pointer', fontSize: 16, padding: '4px', borderRadius: 4 }}
-                  title={isScreenSharing ? 'Dừng Share' : 'Share Màn Hình'}
-                >
-                  {isScreenSharing ? '💻' : '📺'}
-                </button>
-              </>
-            )}
+
+          <div style={{ display: 'flex', gap: 2 }}>
+            <button
+              onClick={() => setShowProfileSettings(true)}
+              style={{ background: 'transparent', border: 'none', color: 'var(--discord-text-secondary)', cursor: 'pointer', padding: '6px', borderRadius: 4 }}
+              title="Cài đặt"
+              className="footer-icon-btn"
+            >
+              ⚙️
+            </button>
             <a
               href="/logout"
-              style={{ color: 'var(--discord-text-secondary)', fontSize: 16, textDecoration: 'none', padding: '4px', marginLeft: 4 }}
+              style={{ color: 'var(--discord-text-secondary)', textDecoration: 'none', padding: '6px', fontSize: 14 }}
               title="Đăng xuất"
+              className="footer-icon-btn"
             >⏏</a>
           </div>
         </div>
@@ -248,6 +292,7 @@ const ChannelSidebar = ({ wsHook, webRTCHook }) => {
       {showServerSettings && <ServerSettingsModal onClose={() => setShowServerSettings(false)} />}
       {showChannelSettings && <ChannelSettingsModal channel={showChannelSettings} onClose={() => setShowChannelSettings(null)} />}
       {showInvite && <InviteModal server={currentServer} onClose={() => setShowInvite(false)} />}
+      {showProfileSettings && <ProfileModal onClose={() => setShowProfileSettings(false)} />}
     </>
   );
 };

@@ -4,7 +4,7 @@ import MessageItem from './MessageItem';
 /**
  * Nhóm tin nhắn liên tiếp cùng người (< 5 phút) giống Discord
  */
-const MessageList = ({ messages, currentUserId, onRevoke }) => {
+const MessageList = ({ messages, currentUserId, onRevoke, onReaction }) => {
   if (!messages || messages.length === 0) {
     return (
       <div style={{ textAlign: 'center', color: 'var(--discord-text-muted)', padding: '40px 16px', fontSize: 14 }}>
@@ -34,9 +34,9 @@ const MessageList = ({ messages, currentUserId, onRevoke }) => {
   return (
     <div style={{ paddingBottom: 8 }}>
       {groups.map((group, gi) => (
-        <div key={group.header.id || gi} className="animate-fade-in">
+        <div key={group.header.id || gi} className="animate-fade-in group">
           {/* Header của group (avatar + tên) */}
-          <div className="message-group" style={{ paddingTop: 16, alignItems: 'flex-start' }}>
+          <div className="message-group" style={{ paddingTop: 16, alignItems: 'flex-start', position: 'relative' }}>
             <img
               src={group.header.senderAvatar || 'https://via.placeholder.com/40'}
               alt={group.header.senderName}
@@ -58,40 +58,13 @@ const MessageList = ({ messages, currentUserId, onRevoke }) => {
                   message={msg}
                   isOwn={msg.senderId === currentUserId}
                   onRevoke={onRevoke}
+                  onReaction={onReaction}
+                  currentUserId={currentUserId}
                   showAvatar={false}
                 />
               ))}
             </div>
-            {/* Actions zone chỉ cho tin đầu */}
-            {group.messages[0].senderId === currentUserId && !group.messages[0].revoked && (
-              <div className="message-actions">
-                <div
-                  className="message-action-btn"
-                  onClick={() => onRevoke(group.messages[0].id)}
-                  title="Thu hồi"
-                >✕ Thu hồi</div>
-              </div>
-            )}
           </div>
-
-          {/* Các tin tiếp theo trong group (không hiện avatar) */}
-          {group.messages.slice(1).map((msg) => (
-            <div key={msg.id} className="message-group" style={{ paddingLeft: 72, paddingTop: 2 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <MessageItem
-                  message={msg}
-                  isOwn={msg.senderId === currentUserId}
-                  onRevoke={onRevoke}
-                  showAvatar={false}
-                />
-              </div>
-              {msg.senderId === currentUserId && !msg.revoked && (
-                <div className="message-actions">
-                  <div className="message-action-btn" onClick={() => onRevoke(msg.id)}>✕ Thu hồi</div>
-                </div>
-              )}
-            </div>
-          ))}
         </div>
       ))}
     </div>
