@@ -31,6 +31,9 @@ public class Message {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    // Reactions: emoji -> list of userIds
+    private java.util.Map<String, java.util.List<String>> reactions = new java.util.HashMap<>();
+
     public Message(String channelId, String senderId, String content, MessageType type,
                    String fileUrl, String fileName) {
         this.channelId = channelId;

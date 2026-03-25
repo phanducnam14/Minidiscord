@@ -8,7 +8,6 @@ import com.example.minidiscord.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
@@ -113,6 +112,36 @@ public class ChatController {
         typingEvent.setTimestamp(LocalDateTime.now().format(FORMATTER));
 
         messagingTemplate.convertAndSend("/topic/channel/" + channelId + "/typing", typingEvent);
+    }
+
+    /**
+     * Thả icon cảm xúc (Reaction) — lưu DB → broadcast REACTION event
+     * Client gửi tới: /app/chat/{channelId}/reaction/{messageId}
+     */
+    @MessageMapping("/chat/{channelId}/reaction/{messageId}")
+    public void handleReaction(
+            @DestinationVariable("channelId") String channelId,
+            @DestinationVariable("messageId") String messageId,
+            ChatMessage chatMessage,
+            Principal principal) {
+        User user = getUserFromPrincipal(principal);
+        if (user == null) return;
+
+        String emoji = chatMessage.getContent();
+        if (emoji == null || emoji.isEmpty()) return;
+
+        MessageDTO updated = messageService.toggleReaction(messageId, user.getId(), emoji);
+
+        ChatMessage reactionEvent = new ChatMessage();
+        reactionEvent.setType(ChatMessage.MessageType.REACTION);
+        reactionEvent.setChannelId(channelId);
+        reactionEvent.setSenderId(user.getId());
+        reactionEvent.setMessageId(messageId);
+        reactionEvent.setContent(emoji);
+        reactionEvent.setReactions(updated.getReactions());
+        reactionEvent.setTimestamp(LocalDateTime.now().format(FORMATTER));
+
+        messagingTemplate.convertAndSend("/topic/channel/" + channelId, reactionEvent);
     }
 
     private User getUserFromPrincipal(Principal principal) {

@@ -22,45 +22,50 @@ export default defineConfig({
         target: 'http://localhost:8080', 
         changeOrigin: true,
         cookieDomainRewrite: "",
-        onProxyReq: (proxyReq) => {
+        onProxyReq: (proxyReq, req) => {
           proxyReq.setHeader('X-Forwarded-Port', '443');
           proxyReq.setHeader('X-Forwarded-Proto', 'https');
+          proxyReq.setHeader('X-Forwarded-Host', req.headers.host);
         }
       },
       '/uploads': { 
         target: 'http://localhost:8080', 
         changeOrigin: true,
         cookieDomainRewrite: "",
-        onProxyReq: (proxyReq) => {
+        onProxyReq: (proxyReq, req) => {
           proxyReq.setHeader('X-Forwarded-Port', '443');
           proxyReq.setHeader('X-Forwarded-Proto', 'https');
+          proxyReq.setHeader('X-Forwarded-Host', req.headers.host);
         }
       },
       '/oauth2': { 
         target: 'http://localhost:8080', 
-        changeOrigin: true,
+        changeOrigin: false,
         cookieDomainRewrite: "",
-        onProxyReq: (proxyReq) => {
+        onProxyReq: (proxyReq, req) => {
           proxyReq.setHeader('X-Forwarded-Port', '443');
           proxyReq.setHeader('X-Forwarded-Proto', 'https');
+          proxyReq.setHeader('X-Forwarded-Host', req.headers.host);
         }
       },
       '/login/oauth2': { 
         target: 'http://localhost:8080', 
-        changeOrigin: true,
+        changeOrigin: false,
         cookieDomainRewrite: "",
-        onProxyReq: (proxyReq) => {
+        onProxyReq: (proxyReq, req) => {
           proxyReq.setHeader('X-Forwarded-Port', '443');
           proxyReq.setHeader('X-Forwarded-Proto', 'https');
+          proxyReq.setHeader('X-Forwarded-Host', req.headers.host);
         }
       },
       '/logout': { 
         target: 'http://localhost:8080', 
         changeOrigin: true,
         cookieDomainRewrite: "",
-        onProxyReq: (proxyReq) => {
+        onProxyReq: (proxyReq, req) => {
           proxyReq.setHeader('X-Forwarded-Port', '443');
           proxyReq.setHeader('X-Forwarded-Proto', 'https');
+          proxyReq.setHeader('X-Forwarded-Host', req.headers.host);
         }
       },
     }

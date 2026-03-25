@@ -4,9 +4,21 @@ import useToastStore from '../store/useToastStore';
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
-  { urls: 'stun:stun2.l.google.com:19302' },
-  { urls: 'stun:stun3.l.google.com:19302' },
-  { urls: 'stun:stun4.l.google.com:19302' },
+  {
+    urls: "turn:openrelay.metered.ca:80",
+    username: "openrelayproject",
+    credential: "openrelayproject"
+  },
+  {
+    urls: "turn:openrelay.metered.ca:443",
+    username: "openrelayproject",
+    credential: "openrelayproject"
+  },
+  {
+    urls: "turn:openrelay.metered.ca:443?transport=tcp",
+    username: "openrelayproject",
+    credential: "openrelayproject"
+  }
 ];
 
 const useWebRTC = ({ publish, subscribe, currentUser }) => {
@@ -57,21 +69,22 @@ const useWebRTC = ({ publish, subscribe, currentUser }) => {
     pc.ontrack = (event) => {
       console.log(`[WebRTC] Nhận track từ ${peerId}:`, event.track.kind);
       
-      // Đảm bảo lấy được stream (tạo mới nếu trình duyệt không gửi kèm streams)
       let remoteStream = event.streams[0];
       if (!remoteStream) {
-        console.log(`[WebRTC] Tạo stream mới cho track ${event.track.kind} từ ${peerId}`);
         remoteStream = new MediaStream([event.track]);
       }
 
       setPeers((prev) => {
         const next = new Map(prev);
         const existing = next.get(peerId) || {};
-        // Gom các track vào cùng 1 stream hiển thị
-        const updatedStream = existing.stream || new MediaStream();
-        if (!updatedStream.getTracks().find(t => t.id === event.track.id)) {
-          updatedStream.addTrack(event.track);
+        
+        // Luôn tạo mới MediaStream để React useEffect bắt được thay đổi reference
+        const tracks = existing.stream ? existing.stream.getTracks() : [];
+        if (!tracks.find(t => t.id === event.track.id)) {
+          tracks.push(event.track);
         }
+        const updatedStream = new MediaStream(tracks);
+        
         next.set(peerId, { ...existing, stream: updatedStream });
         return next;
       });
@@ -118,7 +131,7 @@ const useWebRTC = ({ publish, subscribe, currentUser }) => {
             videoReady = true;
           } catch (errVideo) {
             console.error('[WebRTC] Không tìm thấy thiết bị nào:', errVideo);
-            throw new Error('Không tìm thấy Micro hoặc Camera trên máy này.');
+            throw new Error('Không thể truy cập Micro hoặc Camera. Vui lòng cấp quyền trong trình duyệt hoặc kiểm tra lại thiết bị.');
           }
         }
       }
@@ -150,6 +163,9 @@ const useWebRTC = ({ publish, subscribe, currentUser }) => {
           });
 
           const pc = createPeerConnection(fromUserId, channelId);
+          // Khởi tạo hàng đợi ICE candidates
+          pc.iceCandidatesQueue = [];
+
           peersRef.current.set(fromUserId, {
             ...(peersRef.current.get(fromUserId) || {}),
             peerConnection: pc,
@@ -161,8 +177,8 @@ const useWebRTC = ({ publish, subscribe, currentUser }) => {
             offerToReceiveAudio: true,
             offerToReceiveVideo: true
           });
-          await pc.setLocalDescription(offer);
 
+          // Gửi OFFER trước để đảm bảo phía kia nhận được trước khi các ICE_CANDIDATE chạy tới
           publish('/app/voice/signal', {
             type: 'OFFER',
             fromUserId: currentUser?.id,
@@ -170,6 +186,9 @@ const useWebRTC = ({ publish, subscribe, currentUser }) => {
             channelId,
             sdp: JSON.stringify(offer),
           });
+
+          // setLocalDescription sẽ kích hoạt onicecandidate
+          await pc.setLocalDescription(offer);
 
         } else if (type === 'LEFT') {
           const peerData = peersRef.current.get(fromUserId);
@@ -192,14 +211,25 @@ const useWebRTC = ({ publish, subscribe, currentUser }) => {
 
         if (type === 'OFFER') {
           const pc = createPeerConnection(fromUserId, channelId);
+          pc.iceCandidatesQueue = []; // Đệm candidate
+          
           peersRef.current.set(fromUserId, {
             ...(peersRef.current.get(fromUserId) || {}),
             peerConnection: pc,
           });
+          
           await pc.setRemoteDescription(JSON.parse(sdp));
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
+          
+          // Xử lý các candidate bị nghẽn trong hàng đợi
+          while (pc.iceCandidatesQueue.length > 0) {
+            const queuedCandidate = pc.iceCandidatesQueue.shift();
+            try { await pc.addIceCandidate(queuedCandidate); } 
+            catch (e) { console.error('[WebRTC] Lỗi add queued candidate:', e); }
+          }
 
+          const answer = await pc.createAnswer();
+
+          // Gửi ANSWER trước
           publish('/app/voice/signal', {
             type: 'ANSWER',
             fromUserId: currentUser?.id,
@@ -208,19 +238,36 @@ const useWebRTC = ({ publish, subscribe, currentUser }) => {
             sdp: JSON.stringify(answer),
           });
 
+          // Kích hoạt onicecandidate
+          await pc.setLocalDescription(answer);
+
         } else if (type === 'ANSWER') {
           const peerData = peersRef.current.get(fromUserId);
           if (peerData?.peerConnection) {
             await peerData.peerConnection.setRemoteDescription(JSON.parse(sdp));
+            // Xử lý các candidate bị nghẽn
+            while (peerData.peerConnection.iceCandidatesQueue?.length > 0) {
+              const queuedCandidate = peerData.peerConnection.iceCandidatesQueue.shift();
+              try { await peerData.peerConnection.addIceCandidate(queuedCandidate); } 
+              catch (e) { console.error('[WebRTC] Lỗi add queued candidate:', e); }
+            }
           }
 
         } else if (type === 'ICE_CANDIDATE') {
           const peerData = peersRef.current.get(fromUserId);
           if (peerData?.peerConnection) {
-            try {
-              await peerData.peerConnection.addIceCandidate(JSON.parse(candidate));
-            } catch (e) {
-              console.error('[WebRTC] Lỗi add candidate:', e);
+            const pc = peerData.peerConnection;
+            const candidateObj = JSON.parse(candidate);
+            if (!pc.remoteDescription) {
+              // Bị Race condition: nhận ICE trước khi RemoteDescription set xong -> đưa vào hàng đợi
+              if (!pc.iceCandidatesQueue) pc.iceCandidatesQueue = [];
+              pc.iceCandidatesQueue.push(candidateObj);
+            } else {
+              try {
+                await pc.addIceCandidate(candidateObj);
+              } catch (e) {
+                console.error('[WebRTC] Lỗi add candidate:', e);
+              }
             }
           }
         }
@@ -233,6 +280,7 @@ const useWebRTC = ({ publish, subscribe, currentUser }) => {
 
     } catch (e) {
       console.error('[WebRTC] Lỗi join:', e);
+      addToast(e.message || 'Có lỗi xảy ra khi tham gia kênh thoại.', 'error');
     }
   }, [publish, subscribe, currentUser, createPeerConnection, addToast]);
 

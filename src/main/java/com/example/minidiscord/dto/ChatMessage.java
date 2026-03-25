@@ -27,7 +27,9 @@ public class ChatMessage {
     // Loại tin nhắn trong channel
     private String messageType; // TEXT, IMAGE, FILE
 
+    private java.util.Map<String, java.util.List<String>> reactions;
+
     public enum MessageType {
-        SEND, REVOKE, TYPING
+        SEND, REVOKE, TYPING, REACTION
     }
 }

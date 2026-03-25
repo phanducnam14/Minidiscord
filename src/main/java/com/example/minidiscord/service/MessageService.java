@@ -67,6 +67,33 @@ public class MessageService {
         return messageRepository.findById(messageId);
     }
 
+    /**
+     * Thêm/Gỡ reaction khỏi tin nhắn
+     */
+    public MessageDTO toggleReaction(String messageId, String userId, String emoji) {
+        Message message = messageRepository.findById(messageId)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy tin nhắn"));
+        
+        java.util.Map<String, java.util.List<String>> reactions = message.getReactions();
+        java.util.List<String> userIds = reactions.get(emoji);
+        if (userIds == null) {
+            userIds = new java.util.ArrayList<>();
+            reactions.put(emoji, userIds);
+        }
+        
+        if (userIds.contains(userId)) {
+            userIds.remove(userId);
+            if (userIds.isEmpty()) {
+                reactions.remove(emoji);
+            }
+        } else {
+            userIds.add(userId);
+        }
+        
+        message.setUpdatedAt(LocalDateTime.now());
+        return toDTO(messageRepository.save(message));
+    }
+
     private MessageDTO toDTO(Message message) {
         User sender = userRepository.findById(message.getSenderId()).orElse(null);
         return new MessageDTO(
@@ -81,7 +108,8 @@ public class MessageService {
             message.getFileName(),
             message.isRevoked(),
             message.getCreatedAt(),
-            message.getUpdatedAt()
+            message.getUpdatedAt(),
+            message.getReactions()
         );
     }
 }

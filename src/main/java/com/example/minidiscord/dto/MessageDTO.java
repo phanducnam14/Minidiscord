@@ -22,4 +22,5 @@ public class MessageDTO {
     private boolean revoked;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private java.util.Map<String, java.util.List<String>> reactions;
 }

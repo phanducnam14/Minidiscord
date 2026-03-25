@@ -35,7 +35,7 @@ const AppPage = () => {
           const returnUrl = sessionStorage.getItem('returnUrl');
           if (returnUrl) {
             sessionStorage.removeItem('returnUrl');
-            navigate(returnUrl);
+            navigate(returnUrl, { state: { autoJoin: true } });
           }
         }
       } catch (err) {
