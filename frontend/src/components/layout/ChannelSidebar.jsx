@@ -8,7 +8,7 @@ import InviteModal from '../modals/InviteModal';
 import ProfileModal from '../modals/ProfileModal';
 
 const ChannelSidebar = ({ wsHook, webRTCHook }) => {
-  const { currentServer, channels, currentChannel, setCurrentChannel, removeChannel } = useServerStore();
+  const { currentServer, channels, currentChannel, setCurrentChannel } = useServerStore();
   const { currentUser } = useUserStore();
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [showServerDropdown, setShowServerDropdown] = useState(false);
@@ -19,117 +19,84 @@ const ChannelSidebar = ({ wsHook, webRTCHook }) => {
 
   const { isMicOn, isCamOn, isScreenSharing, toggleMic, toggleCamera, toggleScreenShare, currentChannelId } = webRTCHook || {};
 
-
   const textChannels = channels.filter((c) => c.type === 'TEXT');
   const voiceChannels = channels.filter((c) => c.type === 'VOICE');
+  const connectedVoiceChannel = channels.find((channel) => channel.id === currentChannelId);
 
-  // Kiểm tra user có phải OWNER/ADMIN không
   const isAdmin = currentServer?.members?.some(
     (m) => m.userId === currentUser?.id && (m.role === 'OWNER' || m.role === 'ADMIN')
   );
 
   const handleLeaveVoice = () => {
-    if (wsHook) {
+    if (webRTCHook?.leaveVoiceChannel) {
+      webRTCHook.leaveVoiceChannel();
+    } else if (wsHook) {
       wsHook.publish('/app/voice/' + currentChannel?.id + '/leave', {});
     }
-    setCurrentChannel(null);
   };
 
   if (!currentServer) {
     return (
-      <div style={{
-        width: 240,
-        background: 'var(--discord-sidebar)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--discord-text-muted)',
-        fontSize: 14,
-      }}>
-        Chọn một server
-      </div>
+      <aside className="sidebar-shell sidebar-shell--empty">
+        <div className="sidebar-empty-state animate-fade-in">
+          <span className="sidebar-empty-state__icon">
+            <ServerIcon />
+          </span>
+          <span>Chọn một server để xem channel và thành viên.</span>
+        </div>
+      </aside>
     );
   }
 
   return (
     <>
-      <div style={{
-        width: 240,
-        background: 'var(--discord-sidebar)',
-        display: 'flex',
-        flexDirection: 'column',
-      }}>
-        {/* Server header */}
-        <div 
-          onClick={() => setShowServerDropdown(!showServerDropdown)}
-          style={{
-            padding: '12px 16px',
-            borderBottom: '1px solid var(--discord-bg-primary)',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
-            fontWeight: 700,
-            fontSize: 16,
-            color: 'var(--discord-text-primary)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            position: 'relative'
-          }}
-        >
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentServer.name}</span>
-          <span style={{ fontSize: 18, color: 'var(--discord-text-muted)', transform: showServerDropdown ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}>⚙️</span>
-          
-          {/* Server Dropdown menu */}
+      <aside className="sidebar-shell">
+        <div onClick={() => setShowServerDropdown(!showServerDropdown)} className="sidebar-header">
+          <div className="sidebar-header__content">
+            <span className="sidebar-header__badge">{getInitial(currentServer.name)}</span>
+            <span className="sidebar-header__title">{currentServer.name}</span>
+          </div>
+          <span className={`sidebar-header__toggle ${showServerDropdown ? 'is-open' : ''}`}>
+            <ChevronIcon />
+          </span>
+
           {showServerDropdown && (
-            <div 
-              style={{
-                position: 'absolute', top: 56, left: 8, right: 8, background: 'var(--discord-bg-primary)',
-                borderRadius: 4, padding: 8, zIndex: 100, boxShadow: '0 8px 16px rgba(0,0,0,0.5)'
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div 
+            <div className="sidebar-dropdown" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
                 onClick={() => { setShowInvite(true); setShowServerDropdown(false); }}
-                style={{ padding: '8px', color: 'var(--discord-brand)', cursor: 'pointer', borderRadius: 2, display: 'flex', justifyContent: 'space-between' }}
-                className="channel-item"
+                className="sidebar-dropdown__item sidebar-dropdown__item--accent"
               >
-                Mời mọi người <span>👋</span>
-              </div>
+                <span>Mời mọi người</span>
+                <InviteIcon />
+              </button>
               {isAdmin && (
-                <div 
+                <button
+                  type="button"
                   onClick={() => { setShowServerSettings(true); setShowServerDropdown(false); }}
-                  style={{ padding: '8px', color: 'var(--discord-text-primary)', cursor: 'pointer', borderRadius: 2, display: 'flex', justifyContent: 'space-between' }}
-                  className="channel-item"
+                  className="sidebar-dropdown__item"
                 >
-                  Cài đặt Máy chủ <span>⚙️</span>
-                </div>
+                  <span>Cài đặt máy chủ</span>
+                  <SettingsIcon />
+                </button>
               )}
             </div>
           )}
         </div>
 
-        {/* Channel list */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 8px' }}>
-          {/* TEXT channels */}
-          <div style={{ marginBottom: 8 }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '4px 8px',
-              color: 'var(--discord-text-muted)',
-              fontSize: 12,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: 0.5,
-            }}>
-              <span>Văn bản</span>
+        <div className="sidebar-scroll">
+          <section className="sidebar-section">
+            <div className="sidebar-section__header">
+              <span className="sidebar-section__title">Văn bản</span>
               {isAdmin && (
-                <span
+                <button
+                  type="button"
                   onClick={() => setShowCreateChannel('TEXT')}
-                  style={{ cursor: 'pointer', fontSize: 18, lineHeight: 1 }}
+                  className="sidebar-section__action"
                   title="Thêm channel văn bản"
-                >+</span>
+                >
+                  <PlusIcon />
+                </button>
               )}
             </div>
             {textChannels.map((ch) => (
@@ -142,28 +109,20 @@ const ChannelSidebar = ({ wsHook, webRTCHook }) => {
                 onSettings={() => setShowChannelSettings(ch)}
               />
             ))}
-          </div>
+          </section>
 
-          {/* VOICE channels */}
-          <div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '4px 8px',
-              color: 'var(--discord-text-muted)',
-              fontSize: 12,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: 0.5,
-            }}>
-              <span>Thoại</span>
+          <section className="sidebar-section">
+            <div className="sidebar-section__header">
+              <span className="sidebar-section__title">Thoại</span>
               {isAdmin && (
-                <span
+                <button
+                  type="button"
                   onClick={() => setShowCreateChannel('VOICE')}
-                  style={{ cursor: 'pointer', fontSize: 18, lineHeight: 1 }}
+                  className="sidebar-section__action"
                   title="Thêm voice channel"
-                >+</span>
+                >
+                  <PlusIcon />
+                </button>
               )}
             </div>
             {voiceChannels.map((ch) => (
@@ -176,112 +135,93 @@ const ChannelSidebar = ({ wsHook, webRTCHook }) => {
                 onSettings={() => setShowChannelSettings(ch)}
               />
             ))}
-          </div>
+          </section>
         </div>
 
-        {/* Voice Connection Status & Controls (Discord style) */}
         {currentChannelId && (
-          <div style={{
-            padding: '8px 12px',
-            background: 'var(--discord-user-area)',
-            borderBottom: '1px solid var(--discord-divider)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--discord-green)' }}>
-                  🟢 Thoại đã kết nối
+          <div className="voice-connection-card">
+            <div className="voice-connection-card__header">
+              <div>
+                <span className="voice-connection-card__status">
+                  <span className="voice-connection-card__status-dot" />
+                  Thoại đã kết nối
                 </span>
-                <span style={{ fontSize: 12, color: 'var(--discord-text-muted)' }}>
-                  {currentChannel?.name || 'Kênh thoại'}
+                <span className="voice-connection-card__channel">
+                  {connectedVoiceChannel?.name || 'Kênh thoại'}
                 </span>
               </div>
-              <button 
+              <button
+                type="button"
                 onClick={handleLeaveVoice}
-                style={{ background: 'transparent', border: 'none', color: 'var(--discord-text-secondary)', cursor: 'pointer', fontSize: 18 }}
+                className="footer-icon-btn"
                 title="Ngắt kết nối"
               >
-                📞
+                <PhoneOffIcon />
               </button>
             </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-around', background: 'var(--discord-bg-primary)', borderRadius: 4, padding: '4px' }}>
+
+            <div className="voice-control-grid">
               <button
+                type="button"
                 onClick={toggleMic}
-                style={{ background: 'transparent', border: 'none', color: isMicOn ? 'var(--discord-text-secondary)' : 'var(--discord-red)', cursor: 'pointer', padding: '6px' }}
+                className={`voice-control-btn ${isMicOn ? 'is-active' : 'is-off'}`}
                 title={isMicOn ? 'Tắt Mic' : 'Bật Mic'}
               >
-                {isMicOn ? '🎤' : '🔇'}
+                <span className="voice-control-btn__icon">{isMicOn ? <MicIcon /> : <MicOffIcon />}</span>
+                <span>Mic</span>
               </button>
               <button
+                type="button"
                 onClick={toggleCamera}
-                style={{ background: 'transparent', border: 'none', color: isCamOn ? 'var(--discord-text-secondary)' : 'var(--discord-red)', cursor: 'pointer', padding: '6px' }}
+                className={`voice-control-btn ${isCamOn ? 'is-active' : 'is-off'}`}
                 title={isCamOn ? 'Tắt Camera' : 'Bật Camera'}
               >
-                {isCamOn ? '📷' : '🚫'}
+                <span className="voice-control-btn__icon">{isCamOn ? <CameraIcon /> : <CameraOffIcon />}</span>
+                <span>Cam</span>
               </button>
               <button
+                type="button"
                 onClick={toggleScreenShare}
-                style={{ background: 'transparent', border: 'none', color: isScreenSharing ? 'var(--discord-green)' : 'var(--discord-text-secondary)', cursor: 'pointer', padding: '6px' }}
+                className={`voice-control-btn ${isScreenSharing ? 'is-active' : ''}`}
                 title={isScreenSharing ? 'Dừng Share' : 'Share Màn Hình'}
               >
-                {isScreenSharing ? '💻' : '📺'}
+                <span className="voice-control-btn__icon"><ScreenIcon /></span>
+                <span>Share</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* Footer user info */}
-        <div style={{
-          padding: '8px 10px',
-          background: 'var(--discord-user-area)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-        }}>
-          <div style={{ position: 'relative' }}>
+        <div className="user-panel">
+          <div className="user-panel__avatar-wrap">
             <img
               src={currentUser?.avatarUrl || 'https://via.placeholder.com/32'}
               alt={currentUser?.displayName}
-              className="avatar"
-              style={{ width: 32, height: 32, borderRadius: '50%' }}
+              className="avatar user-panel__avatar"
             />
-            <div style={{ 
-              position: 'absolute', bottom: -2, right: -2, 
-              width: 12, height: 12, borderRadius: '50%', 
-              background: 'var(--discord-green)', border: '2px solid var(--discord-user-area)' 
-            }}></div>
-          </div>
-          
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--discord-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {currentUser?.displayName}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--discord-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              Online
-            </div>
+            <div className="user-panel__presence" />
           </div>
 
-          <div style={{ display: 'flex', gap: 2 }}>
+          <div className="user-panel__meta">
+            <div className="user-panel__name">{currentUser?.displayName}</div>
+            <div className="user-panel__status">Online</div>
+          </div>
+
+          <div className="user-panel__actions">
             <button
+              type="button"
               onClick={() => setShowProfileSettings(true)}
-              style={{ background: 'transparent', border: 'none', color: 'var(--discord-text-secondary)', cursor: 'pointer', padding: '6px', borderRadius: 4 }}
               title="Cài đặt"
               className="footer-icon-btn"
             >
-              ⚙️
+              <SettingsIcon />
             </button>
-            <a
-              href="/logout"
-              style={{ color: 'var(--discord-text-secondary)', textDecoration: 'none', padding: '6px', fontSize: 14 }}
-              title="Đăng xuất"
-              className="footer-icon-btn"
-            >⏏</a>
+            <a href="/logout" title="Đăng xuất" className="footer-icon-btn">
+              <LogoutIcon />
+            </a>
           </div>
         </div>
-      </div>
+      </aside>
 
       {showCreateChannel && (
         <CreateChannelModal
@@ -298,26 +238,136 @@ const ChannelSidebar = ({ wsHook, webRTCHook }) => {
 };
 
 const ChannelItem = ({ channel, active, onSelect, isAdmin, onSettings }) => {
-  const icon = channel.type === 'TEXT' ? '#' : '🔊';
+  const icon = channel.type === 'TEXT' ? <HashIcon /> : <VolumeIcon />;
   return (
-    <div
-      className={`channel-item ${active ? 'active' : ''}`}
-      onClick={onSelect}
-    >
-      <span style={{ color: 'var(--discord-text-muted)' }}>{icon}</span>
-      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {channel.name}
-      </span>
+    <div className={`channel-item ${active ? 'active' : ''}`} onClick={onSelect}>
+      <span className="channel-item__icon">{icon}</span>
+      <span className="channel-item__label">{channel.name}</span>
       {isAdmin && (
-        <span
+        <button
+          type="button"
           onClick={(e) => { e.stopPropagation(); onSettings(); }}
-          style={{ transition: 'opacity 0.2s', fontSize: 16, color: 'var(--discord-text-muted)' }}
           className="channel-delete-btn"
           title="Cài đặt kênh"
-        >⚙️</span>
+        >
+          <SettingsIcon />
+        </button>
       )}
     </div>
   );
 };
+
+const getInitial = (name = '') => name.trim().charAt(0).toUpperCase() || 'S';
+
+const ServerIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M4 8.5 12 4l8 4.5" />
+    <path d="M4 8.5V16l8 4 8-4V8.5" />
+    <path d="M12 12v8" />
+  </svg>
+);
+
+const ChevronIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+);
+
+const InviteIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
+    <circle cx="9.5" cy="7" r="4" />
+    <path d="M19 8v6" />
+    <path d="M16 11h6" />
+  </svg>
+);
+
+const SettingsIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.7 1.7 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.82-.33 1.7 1.7 0 0 0-1 1.54V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.54 1.7 1.7 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.54-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.54-1 1.7 1.7 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 8.95 4.6 1.7 1.7 0 0 0 10 3.06V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.54 1.7 1.7 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 8.95 1.7 1.7 0 0 0 20.94 10H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.54 1Z" />
+  </svg>
+);
+
+const PlusIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+    <path d="M12 5v14" />
+    <path d="M5 12h14" />
+  </svg>
+);
+
+const HashIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5 9h14" />
+    <path d="M5 15h14" />
+    <path d="M10 4 8 20" />
+    <path d="m16 4-2 16" />
+  </svg>
+);
+
+const VolumeIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+    <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+    <path d="M18.5 5.5a9 9 0 0 1 0 13" />
+  </svg>
+);
+
+const MicIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 1 1-6 0V6a3 3 0 0 1 3-3Z" />
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+    <path d="M12 19v3" />
+  </svg>
+);
+
+const MicOffIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="m4 4 16 16" />
+    <path d="M9 9v3a3 3 0 0 0 5.12 2.12" />
+    <path d="M15 9V6a3 3 0 0 0-5.68-1.33" />
+    <path d="M19 10v2a7 7 0 0 1-12 4.95" />
+    <path d="M12 19v3" />
+  </svg>
+);
+
+const CameraIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="6" width="13" height="12" rx="3" />
+    <path d="m16 10 5-3v10l-5-3" />
+  </svg>
+);
+
+const CameraOffIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="m2 2 20 20" />
+    <path d="M10.5 6H6a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h9" />
+    <path d="m16 10 5-3v10l-5-3" />
+  </svg>
+);
+
+const ScreenIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="4" width="18" height="12" rx="2" />
+    <path d="M8 20h8" />
+    <path d="M12 16v4" />
+  </svg>
+);
+
+const PhoneOffIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="m3 3 18 18" />
+    <path d="M15 9a12.8 12.8 0 0 1 6 2l-3 3a2 2 0 0 1-2.1.46l-1.76-.59" />
+    <path d="M9.88 5.1 8 4.47A2 2 0 0 0 5.9 4.93L3 8a12.79 12.79 0 0 1 4.74 8.74l3.08-2.91a2 2 0 0 0 .55-2.04l-.6-1.9" />
+  </svg>
+);
+
+const LogoutIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <path d="m16 17 5-5-5-5" />
+    <path d="M21 12H9" />
+  </svg>
+);
 
 export default ChannelSidebar;

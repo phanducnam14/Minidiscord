@@ -92,7 +92,7 @@ const useWebRTC = ({ publish, subscribe, currentUser }) => {
       peersRef.current.set(peerId, {
         ...(peersRef.current.get(peerId) || {}),
         peerConnection: pc,
-        stream: peers.get(peerId)?.stream || remoteStream,
+        stream: peersRef.current.get(peerId)?.stream || remoteStream,
       });
     };
 
