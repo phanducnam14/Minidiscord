@@ -11,13 +11,12 @@ const ChatInput = ({ wsHook, scrollToBottom }) => {
   const { currentUser } = useUserStore();
 
   const [content, setContent] = useState('');
-  const [preview, setPreview] = useState(null); // { file, previewUrl }
+  const [preview, setPreview] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
 
   const fileInputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
-  // Gửi TYPING event (debounce 1000ms)
   const sendTyping = useCallback(() => {
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     wsHook?.publish(`/app/chat/${currentChannel.id}/typing`, {});
@@ -36,7 +35,6 @@ const ChatInput = ({ wsHook, scrollToBottom }) => {
   const handleSend = async () => {
     if (!currentChannel || !currentUser) return;
 
-    // Nếu có file preview → upload trước
     if (preview) {
       await sendFile();
       return;
@@ -86,7 +84,7 @@ const ChatInput = ({ wsHook, scrollToBottom }) => {
         senderId: currentUser.id,
         fileUrl,
         fileName,
-        messageType: fileType, // IMAGE hoặc FILE
+        messageType: fileType,
       });
 
       setPreview(null);
@@ -105,58 +103,39 @@ const ChatInput = ({ wsHook, scrollToBottom }) => {
   };
 
   return (
-    <div style={{ padding: '0 16px 16px', flexShrink: 0 }}>
-      {/* File preview */}
+    <div className="chat-composer-shell">
       {preview && (
-        <div style={{
-          background: 'var(--discord-input-bg)',
-          borderRadius: '8px 8px 0 0',
-          padding: 12,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          borderBottom: '1px solid var(--discord-divider)',
-        }}>
+        <div className="chat-preview-card">
           {preview.isImage ? (
-            <img src={preview.previewUrl} alt="" style={{ maxWidth: 160, maxHeight: 100, borderRadius: 4, objectFit: 'contain' }} />
+            <img src={preview.previewUrl} alt="" className="chat-preview-card__image" />
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--discord-text-secondary)' }}>
-              <span style={{ fontSize: 24 }}>📄</span>
-              <span style={{ fontSize: 14 }}>{preview.file.name}</span>
+            <div className="chat-preview-card__file">
+              <span className="chat-preview-card__file-icon">
+                <FileIcon />
+              </span>
+              <span>{preview.file.name}</span>
             </div>
           )}
           <button
+            type="button"
             onClick={cancelPreview}
-            style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--discord-red)', fontSize: 20, cursor: 'pointer' }}
-          >×</button>
+            className="chat-preview-card__remove"
+            aria-label="Xóa tệp đính kèm"
+          >
+            <CloseIcon />
+          </button>
         </div>
       )}
 
-      {/* Input area */}
-      <div style={{
-        background: 'var(--discord-input-bg)',
-        borderRadius: preview ? '0 0 8px 8px' : 8,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '4px 8px',
-      }}>
-        {/* File upload button */}
+      <div className={`chat-composer ${preview ? 'has-preview' : ''}`}>
         <button
+          type="button"
           onClick={() => fileInputRef.current?.click()}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            padding: '4px 8px', transition: 'transform 0.1s',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}
+          className="chat-composer__action"
           title="Đính kèm file"
           disabled={isUploading}
         >
-          <div style={{
-            width: 24, height: 24, borderRadius: '50%', background: 'var(--discord-text-muted)',
-            color: 'var(--discord-bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 18, fontWeight: 700, paddingBottom: 2
-          }}>+</div>
+          <AttachIcon />
         </button>
 
         <input
@@ -177,26 +156,56 @@ const ChatInput = ({ wsHook, scrollToBottom }) => {
           onKeyDown={handleKeyDown}
           placeholder={`Nhắn ${currentChannel ? '#' + currentChannel.name : ''}...`}
           rows={1}
-          style={{ borderRadius: 0, padding: '8px 0' }}
           disabled={!!preview}
         />
 
-        {/* Send button */}
         <button
+          type="button"
           onClick={handleSend}
           disabled={(!content.trim() && !preview) || isUploading}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: (!content.trim() && !preview) ? 'var(--discord-text-muted)' : 'var(--discord-accent)',
-            fontSize: 22, padding: '4px 8px', borderRadius: 4, transition: 'color 0.1s',
-          }}
+          className={`chat-composer__send ${content.trim() || preview ? 'is-active' : ''}`}
           title={isUploading ? 'Đang upload...' : 'Gửi'}
         >
-          {isUploading ? '⏳' : '➤'}
+          {isUploading ? <SpinnerIcon /> : <SendIcon />}
         </button>
       </div>
     </div>
   );
 };
+
+const AttachIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="m21.44 11.05-8.49 8.49a5.5 5.5 0 0 1-7.78-7.78l9.2-9.19a3.5 3.5 0 1 1 4.95 4.95l-9.19 9.2a1.5 1.5 0 0 1-2.12-2.13l8.49-8.48" />
+  </svg>
+);
+
+const SendIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M22 2 11 13" />
+    <path d="m22 2-7 20-4-9-9-4 20-7Z" />
+  </svg>
+);
+
+const SpinnerIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+    <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+  </svg>
+);
+
+const FileIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+    <path d="M14 3v5h5" />
+    <path d="M9 15h6" />
+    <path d="M9 11h3" />
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+    <path d="m6 6 12 12" />
+    <path d="M18 6 6 18" />
+  </svg>
+);
 
 export default ChatInput;

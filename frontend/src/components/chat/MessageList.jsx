@@ -7,13 +7,12 @@ import MessageItem from './MessageItem';
 const MessageList = ({ messages, currentUserId, onRevoke, onReaction }) => {
   if (!messages || messages.length === 0) {
     return (
-      <div style={{ textAlign: 'center', color: 'var(--discord-text-muted)', padding: '40px 16px', fontSize: 14 }}>
+      <div className="message-list-empty">
         Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện!
       </div>
     );
   }
 
-  // Tạo danh sách groups
   const groups = [];
   let currentGroup = null;
 
@@ -32,25 +31,19 @@ const MessageList = ({ messages, currentUserId, onRevoke, onReaction }) => {
   });
 
   return (
-    <div style={{ paddingBottom: 8 }}>
+    <div className="message-list">
       {groups.map((group, gi) => (
         <div key={group.header.id || gi} className="animate-fade-in group">
-          {/* Header của group (avatar + tên) */}
-          <div className="message-group" style={{ paddingTop: 16, alignItems: 'flex-start', position: 'relative' }}>
+          <div className="message-group">
             <img
               src={group.header.senderAvatar || 'https://via.placeholder.com/40'}
               alt={group.header.senderName}
-              className="avatar"
-              style={{ width: 40, height: 40, marginTop: 0 }}
+              className="avatar message-group__avatar"
             />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
-                <span style={{ fontWeight: 500, fontSize: 16, color: 'var(--discord-text-primary)' }}>
-                  {group.header.senderName}
-                </span>
-                <span style={{ fontSize: 12, color: 'var(--discord-text-muted)' }}>
-                  {formatTime(group.header.createdAt)}
-                </span>
+            <div className="message-group__body">
+              <div className="message-group__meta">
+                <span className="message-group__author">{group.header.senderName}</span>
+                <span className="message-group__timestamp">{formatTime(group.header.createdAt)}</span>
               </div>
               {group.messages.map((msg) => (
                 <MessageItem

@@ -12,7 +12,30 @@ const useWebSocket = () => {
   // Lưu các subscription để cleanup
   const subscriptionsRef = useRef(new Map());
 
+  const subscribeToDestination = useCallback((destination, callback) => {
+    const client = clientRef.current;
+    if (!client?.connected) {
+      return null;
+    }
+
+    const existingEntry = subscriptionsRef.current.get(destination);
+    existingEntry?.subscription?.unsubscribe();
+
+    const subscription = client.subscribe(destination, (message) => {
+      try {
+        callback(JSON.parse(message.body));
+      } catch {
+        callback(message.body);
+      }
+    });
+
+    subscriptionsRef.current.set(destination, { callback, subscription });
+    return subscription;
+  }, []);
+
   useEffect(() => {
+    const subscriptions = subscriptionsRef.current;
+
     const client = new Client({
       // Dùng SockJS factory để kết nối qua proxy hiện tại (quan trọng cho ngrok)
       webSocketFactory: () => new SockJS('/ws'),
@@ -20,6 +43,10 @@ const useWebSocket = () => {
       onConnect: () => {
         console.log('[WebSocket] Kết nối thành công');
         setConnected(true);
+
+        subscriptions.forEach((entry, destination) => {
+          subscribeToDestination(destination, entry.callback);
+        });
       },
       onDisconnect: () => {
         console.log('[WebSocket] Ngắt kết nối');
@@ -36,50 +63,33 @@ const useWebSocket = () => {
 
     return () => {
       // Unsubscribe tất cả trước khi deactivate
-      subscriptionsRef.current.forEach((sub) => sub.unsubscribe());
-      subscriptionsRef.current.clear();
+      subscriptions.forEach((entry) => entry.subscription?.unsubscribe());
+      subscriptions.clear();
       client.deactivate();
     };
-  }, []);
+  }, [subscribeToDestination]);
 
   /**
    * Đăng ký nhận message từ một destination
    * @returns function để unsubscribe
    */
   const subscribe = useCallback((destination, callback) => {
-    const client = clientRef.current;
-    if (!client || !client.connected) {
-      // Chờ kết nối rồi subscribe
-      const interval = setInterval(() => {
-        if (clientRef.current?.connected) {
-          clearInterval(interval);
-          const sub = clientRef.current.subscribe(destination, (message) => {
-            try {
-              callback(JSON.parse(message.body));
-            } catch (e) {
-              callback(message.body);
-            }
-          });
-          subscriptionsRef.current.set(destination, sub);
-        }
-      }, 300);
-      return () => clearInterval(interval);
+    subscribeToDestination(destination, callback);
+
+    if (!subscriptionsRef.current.get(destination)) {
+      subscriptionsRef.current.set(destination, { callback, subscription: null });
     }
 
-    const sub = client.subscribe(destination, (message) => {
-      try {
-        callback(JSON.parse(message.body));
-      } catch (e) {
-        callback(message.body);
-      }
-    });
-    subscriptionsRef.current.set(destination, sub);
-
     return () => {
-      sub.unsubscribe();
+      const currentEntry = subscriptionsRef.current.get(destination);
+      if (currentEntry?.callback !== callback) {
+        return;
+      }
+
+      currentEntry.subscription?.unsubscribe();
       subscriptionsRef.current.delete(destination);
     };
-  }, []);
+  }, [subscribeToDestination]);
 
   /**
    * Gửi message tới một destination
@@ -96,7 +106,7 @@ const useWebSocket = () => {
     });
   }, []);
 
-  return { client: clientRef.current, connected, subscribe, publish };
+  return { connected, subscribe, publish };
 };
 
 export default useWebSocket;

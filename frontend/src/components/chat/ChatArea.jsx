@@ -19,11 +19,51 @@ const ChatArea = ({ wsHook }) => {
   const [typingUsers, setTypingUsers] = useState([]);
 
   const bottomRef = useRef(null);
-  const topRef = useRef(null);
   const channelIdRef = useRef(null);
   const subCleanups = useRef([]);
+  const isLoadingRef = useRef(false);
+  const activeLoadRequestRef = useRef(0);
 
-  // Mỗi khi đổi channel → reset messages và load lại
+  const scrollToBottom = useCallback(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  const loadMessages = useCallback(async (channelId, pageNum, reset = false) => {
+    if (isLoadingRef.current && !reset) return;
+
+    const requestId = activeLoadRequestRef.current + 1;
+    activeLoadRequestRef.current = requestId;
+
+    isLoadingRef.current = true;
+    setIsLoading(true);
+
+    try {
+      const res = await api.get(`/channels/${channelId}/messages?page=${pageNum}&size=50`);
+      const fetched = res.data || [];
+      const sorted = [...fetched].reverse();
+
+      if (channelIdRef.current !== channelId || activeLoadRequestRef.current !== requestId) {
+        return;
+      }
+
+      setMessages((prev) => reset ? sorted : [...sorted, ...prev]);
+      setHasMore(fetched.length === 50);
+
+      if (reset) {
+        setTimeout(scrollToBottom, 100);
+      }
+    } catch (e) {
+      if (channelIdRef.current === channelId && activeLoadRequestRef.current === requestId) {
+        console.error('Lỗi load messages:', e);
+      }
+    } finally {
+      if (activeLoadRequestRef.current === requestId) {
+        isLoadingRef.current = false;
+        setIsLoading(false);
+      }
+    }
+  }, [scrollToBottom]);
+
   useEffect(() => {
     if (!currentChannel) return;
 
@@ -33,21 +73,17 @@ const ChatArea = ({ wsHook }) => {
     setHasMore(true);
     setTypingUsers([]);
 
-    // Dọn dẹp subscription cũ
     subCleanups.current.forEach((fn) => typeof fn === 'function' && fn());
     subCleanups.current = [];
 
-    // Load trang đầu
     loadMessages(currentChannel.id, 0, true);
 
-    // Subscribe tin nhắn mới
     if (wsHook) {
       const unsubMsg = wsHook.subscribe(
         `/topic/channel/${currentChannel.id}`,
         (msg) => {
           if (channelIdRef.current !== currentChannel.id) return;
           if (msg.type === 'SEND') {
-            // Thêm tin nhắn mới
             const newMsg = {
               id: msg.messageId,
               channelId: msg.channelId,
@@ -64,12 +100,10 @@ const ChatArea = ({ wsHook }) => {
             setMessages((prev) => [...prev, newMsg]);
             scrollToBottom();
           } else if (msg.type === 'REVOKE') {
-            // Đánh dấu tin nhắn đã thu hồi
             setMessages((prev) =>
               prev.map((m) => m.id === msg.messageId ? { ...m, revoked: true } : m)
             );
           } else if (msg.type === 'REACTION') {
-            // Cập nhật reactions cho tin nhắn cụ thể
             setMessages((prev) =>
               prev.map((m) => m.id === msg.messageId ? { ...m, reactions: msg.reactions } : m)
             );
@@ -77,7 +111,6 @@ const ChatArea = ({ wsHook }) => {
         }
       );
 
-      // Subscribe typing indicator
       const unsubTyping = wsHook.subscribe(
         `/topic/channel/${currentChannel.id}/typing`,
         (msg) => {
@@ -86,7 +119,6 @@ const ChatArea = ({ wsHook }) => {
             if (prev.find((u) => u.id === msg.senderId)) return prev;
             return [...prev, { id: msg.senderId, name: msg.senderName }];
           });
-          // Xoá typing sau 3 giây
           setTimeout(() => {
             setTypingUsers((prev) => prev.filter((u) => u.id !== msg.senderId));
           }, 3000);
@@ -100,31 +132,8 @@ const ChatArea = ({ wsHook }) => {
       subCleanups.current.forEach((fn) => typeof fn === 'function' && fn());
       subCleanups.current = [];
     };
-  }, [currentChannel?.id]);
+  }, [currentChannel, currentUser?.id, loadMessages, scrollToBottom, wsHook]);
 
-  const loadMessages = async (channelId, pageNum, reset = false) => {
-    if (isLoading) return;
-    setIsLoading(true);
-    try {
-      const res = await api.get(`/channels/${channelId}/messages?page=${pageNum}&size=50`);
-      const fetched = res.data || [];
-      // API trả về DESC nên đảo lại
-      const sorted = [...fetched].reverse();
-      setMessages((prev) => reset ? sorted : [...sorted, ...prev]);
-      setHasMore(fetched.length === 50);
-      if (reset) setTimeout(scrollToBottom, 100);
-    } catch (e) {
-      console.error('Lỗi load messages:', e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const scrollToBottom = () => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  // Infinite scroll lên trên để load trang cũ hơn
   const handleScroll = useCallback((e) => {
     const el = e.target;
     if (el.scrollTop < 50 && hasMore && !isLoading) {
@@ -132,7 +141,7 @@ const ChatArea = ({ wsHook }) => {
       setPage(nextPage);
       loadMessages(currentChannel.id, nextPage);
     }
-  }, [page, hasMore, isLoading, currentChannel?.id]);
+  }, [page, hasMore, isLoading, currentChannel?.id, loadMessages]);
 
   const handleRevoke = (messageId) => {
     wsHook?.publish(`/app/chat/${currentChannel.id}/revoke/${messageId}`, {});
@@ -145,31 +154,19 @@ const ChatArea = ({ wsHook }) => {
   if (!currentChannel) return null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Channel header */}
-      <div style={{
-        padding: '12px 16px',
-        borderBottom: '1px solid var(--discord-bg-primary)',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        flexShrink: 0,
-      }}>
-        <span style={{ fontSize: 24, color: 'var(--discord-text-muted)' }}>#</span>
-        <span style={{ fontWeight: 700, fontSize: 16 }}>{currentChannel.name}</span>
+    <div className="chat-shell">
+      <div className="chat-header">
+        <span className="chat-header__icon">
+          <HashIcon />
+        </span>
+        <div className="chat-header__meta">
+          <span className="chat-header__title">{currentChannel.name}</span>
+          <span className="chat-header__subtitle">Kênh văn bản</span>
+        </div>
       </div>
 
-      {/* Message list với scroll */}
-      <div
-        style={{ flex: 1, overflowY: 'auto', paddingTop: 8 }}
-        onScroll={handleScroll}
-      >
-        {isLoading && (
-          <div style={{ textAlign: 'center', padding: 12, color: 'var(--discord-text-muted)', fontSize: 13 }}>
-            Đang tải...
-          </div>
-        )}
+      <div className="chat-scroll" onScroll={handleScroll}>
+        {isLoading && <div className="chat-status">Đang tải tin nhắn...</div>}
         <MessageList
           messages={messages}
           currentUserId={currentUser?.id}
@@ -179,20 +176,25 @@ const ChatArea = ({ wsHook }) => {
         <div ref={bottomRef} />
       </div>
 
-      {/* Typing indicator */}
       {typingUsers.length > 0 && (
-        <div style={{ padding: '4px 16px', fontSize: 13, color: 'var(--discord-text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span className="typing-dots"><span/><span/><span/></span>
-          <span>
-            {typingUsers.map((u) => u.name).join(', ')} đang gõ...
-          </span>
+        <div className="chat-typing">
+          <span className="typing-dots"><span /><span /><span /></span>
+          <span>{typingUsers.map((u) => u.name).join(', ')} đang gõ...</span>
         </div>
       )}
 
-      {/* Chat input */}
       <ChatInput wsHook={wsHook} scrollToBottom={scrollToBottom} />
     </div>
   );
 };
+
+const HashIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5 9h14" />
+    <path d="M5 15h14" />
+    <path d="M10 4 8 20" />
+    <path d="m16 4-2 16" />
+  </svg>
+);
 
 export default ChatArea;
