@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import api from '../../api/axiosConfig';
 import useServerStore from '../../store/useServerStore';
-import useUserStore from '../../store/useUserStore';
 
 const CreateServerModal = ({ onClose }) => {
   const [name, setName] = useState('');
