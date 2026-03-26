@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import useUserStore from '../store/useUserStore';
@@ -9,11 +9,34 @@ const InvitePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser, setCurrentUser } = useUserStore();
-  const { addServer, setCurrentServer } = useServerStore();
+  const { addServer, setCurrentServer, setChannels } = useServerStore();
   const [serverInfo, setServerInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const hasAutoJoined = useRef(false);
+
+  const handleJoin = useCallback(async () => {
+    if (!currentUser) {
+      sessionStorage.setItem('returnUrl', window.location.pathname);
+      window.location.href = '/oauth2/authorization/google';
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await api.post(`/servers/${serverId}/join`);
+      addServer(res.data);
+      setCurrentServer(res.data);
+
+      const channelsRes = await api.get(`/servers/${res.data.id}/channels`);
+      setChannels(channelsRes.data);
+
+      navigate('/home');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Không thể tham gia server này.');
+      setLoading(false);
+    }
+  }, [currentUser, serverId, addServer, setCurrentServer, setChannels, navigate]);
 
   useEffect(() => {
     const fetchServerInfo = async () => {
@@ -32,7 +55,7 @@ const InvitePage = () => {
         try {
           const res = await api.get('/auth/me');
           setCurrentUser(res.data);
-        } catch (err) {
+        } catch {
           // Chưa đăng nhập, bỏ qua
         }
       }
@@ -40,34 +63,14 @@ const InvitePage = () => {
 
     fetchServerInfo();
     checkAuth();
-  }, [serverId]);
+  }, [currentUser, serverId, setCurrentUser]);
 
   useEffect(() => {
     if (location.state?.autoJoin && currentUser && serverInfo && !loading && !hasAutoJoined.current) {
       hasAutoJoined.current = true;
       handleJoin();
     }
-  }, [location.state, currentUser, serverInfo, loading]);
-
-  const handleJoin = async () => {
-    if (!currentUser) {
-      // Lưu lại URL hiện tại để sau khi đăng nhập sẽ quay lại đây
-      sessionStorage.setItem('returnUrl', window.location.pathname);
-      window.location.href = '/oauth2/authorization/google';
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await api.post(`/servers/${serverId}/join`);
-      addServer(res.data);
-      setCurrentServer(res.data);
-      navigate('/home');
-    } catch (err) {
-      setError(err.response?.data?.error || 'Không thể tham gia server này.');
-      setLoading(false);
-    }
-  };
+  }, [location.state, currentUser, serverInfo, loading, handleJoin]);
 
   if (loading) {
     return (
