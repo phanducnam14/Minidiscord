@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-const useServerStore = create((set, get) => ({
+const useServerStore = create((set) => ({
   servers: [],
   currentServer: null,
   channels: [],
