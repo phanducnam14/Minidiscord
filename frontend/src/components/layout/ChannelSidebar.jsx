@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import useServerStore from '../../store/useServerStore';
 import useUserStore from '../../store/useUserStore';
+import useUnreadStore from '../../store/useUnreadStore';
 import CreateChannelModal from '../modals/CreateChannelModal';
 import ServerSettingsModal from '../modals/ServerSettingsModal';
 import ChannelSettingsModal from '../modals/ChannelSettingsModal';
 import InviteModal from '../modals/InviteModal';
 import ProfileModal from '../modals/ProfileModal';
+import { SERVER_PERMISSIONS, hasServerPermission } from '../../utils/serverPermissions';
 
 const ChannelSidebar = ({ wsHook, webRTCHook }) => {
   const { currentServer, channels, currentChannel, setCurrentChannel } = useServerStore();
   const { currentUser } = useUserStore();
+  const unreadChannels = useUnreadStore((state) => state.snapshot.channels);
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [showServerDropdown, setShowServerDropdown] = useState(false);
   const [showServerSettings, setShowServerSettings] = useState(false);
@@ -22,10 +25,15 @@ const ChannelSidebar = ({ wsHook, webRTCHook }) => {
   const textChannels = channels.filter((c) => c.type === 'TEXT');
   const voiceChannels = channels.filter((c) => c.type === 'VOICE');
   const connectedVoiceChannel = channels.find((channel) => channel.id === currentChannelId);
-
-  const isAdmin = currentServer?.members?.some(
-    (m) => m.userId === currentUser?.id && (m.role === 'OWNER' || m.role === 'ADMIN')
+  const unreadByChannelId = useMemo(
+    () => new Map(unreadChannels.map((summary) => [summary.channelId, summary])),
+    [unreadChannels]
   );
+
+  const canCreateInvite = hasServerPermission(currentServer, SERVER_PERMISSIONS.MEMBER_MANAGE);
+  const canCreateChannel = hasServerPermission(currentServer, SERVER_PERMISSIONS.CHANNEL_CREATE);
+  const canManageChannels = hasServerPermission(currentServer, SERVER_PERMISSIONS.CHANNEL_UPDATE)
+    || hasServerPermission(currentServer, SERVER_PERMISSIONS.CHANNEL_DELETE);
 
   const handleLeaveVoice = () => {
     if (webRTCHook?.leaveVoiceChannel) {
@@ -62,24 +70,24 @@ const ChannelSidebar = ({ wsHook, webRTCHook }) => {
 
           {showServerDropdown && (
             <div className="sidebar-dropdown" onClick={(e) => e.stopPropagation()}>
-              <button
-                type="button"
-                onClick={() => { setShowInvite(true); setShowServerDropdown(false); }}
-                className="sidebar-dropdown__item sidebar-dropdown__item--accent"
-              >
-                <span>Mời mọi người</span>
-                <InviteIcon />
-              </button>
-              {isAdmin && (
+              {canCreateInvite && (
                 <button
                   type="button"
-                  onClick={() => { setShowServerSettings(true); setShowServerDropdown(false); }}
-                  className="sidebar-dropdown__item"
+                  onClick={() => { setShowInvite(true); setShowServerDropdown(false); }}
+                  className="sidebar-dropdown__item sidebar-dropdown__item--accent"
                 >
-                  <span>Cài đặt máy chủ</span>
-                  <SettingsIcon />
+                  <span>Mời mọi người</span>
+                  <InviteIcon />
                 </button>
               )}
+              <button
+                type="button"
+                onClick={() => { setShowServerSettings(true); setShowServerDropdown(false); }}
+                className="sidebar-dropdown__item"
+              >
+                <span>Cài đặt máy chủ</span>
+                <SettingsIcon />
+              </button>
             </div>
           )}
         </div>
@@ -88,7 +96,7 @@ const ChannelSidebar = ({ wsHook, webRTCHook }) => {
           <section className="sidebar-section">
             <div className="sidebar-section__header">
               <span className="sidebar-section__title">Văn bản</span>
-              {isAdmin && (
+              {canCreateChannel && (
                 <button
                   type="button"
                   onClick={() => setShowCreateChannel('TEXT')}
@@ -99,22 +107,28 @@ const ChannelSidebar = ({ wsHook, webRTCHook }) => {
                 </button>
               )}
             </div>
-            {textChannels.map((ch) => (
-              <ChannelItem
-                key={ch.id}
-                channel={ch}
-                active={currentChannel?.id === ch.id}
-                onSelect={() => setCurrentChannel(ch)}
-                isAdmin={isAdmin}
-                onSettings={() => setShowChannelSettings(ch)}
-              />
-            ))}
+            {textChannels.map((ch) => {
+              const unreadSummary = unreadByChannelId.get(ch.id);
+
+              return (
+                <ChannelItem
+                  key={ch.id}
+                  channel={ch}
+                  active={currentChannel?.id === ch.id}
+                  onSelect={() => setCurrentChannel(ch)}
+                  canManageChannel={canManageChannels}
+                  onSettings={() => setShowChannelSettings(ch)}
+                  unreadCount={unreadSummary?.unreadCount || 0}
+                  mentionCount={unreadSummary?.mentionCount || 0}
+                />
+              );
+            })}
           </section>
 
           <section className="sidebar-section">
             <div className="sidebar-section__header">
               <span className="sidebar-section__title">Thoại</span>
-              {isAdmin && (
+              {canCreateChannel && (
                 <button
                   type="button"
                   onClick={() => setShowCreateChannel('VOICE')}
@@ -131,7 +145,7 @@ const ChannelSidebar = ({ wsHook, webRTCHook }) => {
                 channel={ch}
                 active={currentChannel?.id === ch.id}
                 onSelect={() => setCurrentChannel(ch)}
-                isAdmin={isAdmin}
+                canManageChannel={canManageChannels}
                 onSettings={() => setShowChannelSettings(ch)}
               />
             ))}
@@ -237,13 +251,23 @@ const ChannelSidebar = ({ wsHook, webRTCHook }) => {
   );
 };
 
-const ChannelItem = ({ channel, active, onSelect, isAdmin, onSettings }) => {
+const ChannelItem = ({ channel, active, onSelect, canManageChannel, onSettings, unreadCount = 0, mentionCount = 0 }) => {
   const icon = channel.type === 'TEXT' ? <HashIcon /> : <VolumeIcon />;
   return (
     <div className={`channel-item ${active ? 'active' : ''}`} onClick={onSelect}>
       <span className="channel-item__icon">{icon}</span>
       <span className="channel-item__label">{channel.name}</span>
-      {isAdmin && (
+      {(channel.type === 'TEXT') && (
+        <span className="channel-item__badges">
+          {Boolean(mentionCount) && (
+            <span className="nav-badge nav-badge--mention">@{mentionCount}</span>
+          )}
+          {Boolean(unreadCount) && (
+            <span className="nav-badge nav-badge--unread">{unreadCount}</span>
+          )}
+        </span>
+      )}
+      {canManageChannel && (
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onSettings(); }}

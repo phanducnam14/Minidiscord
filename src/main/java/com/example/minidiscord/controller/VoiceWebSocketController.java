@@ -1,7 +1,9 @@
 package com.example.minidiscord.controller;
 
 import com.example.minidiscord.dto.VoiceSignalMessage;
+import com.example.minidiscord.schema.ServerPermission;
 import com.example.minidiscord.schema.User;
+import com.example.minidiscord.service.ServerService;
 import com.example.minidiscord.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -21,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class VoiceWebSocketController {
     private final SimpMessagingTemplate messagingTemplate;
     private final UserService userService;
+    private final ServerService serverService;
 
     /**
      * Map lưu danh sách user đang trong voice channel
@@ -39,6 +42,7 @@ public class VoiceWebSocketController {
             Principal principal) {
         User user = getUserFromPrincipal(principal);
         if (user == null) return;
+        serverService.requireChannelPermission(channelId, user.getId(), ServerPermission.VOICE_CONNECT);
 
         // Thêm user vào danh sách participants
         voiceParticipants.computeIfAbsent(channelId, k -> new ArrayList<>());
@@ -68,6 +72,7 @@ public class VoiceWebSocketController {
             Principal principal) {
         User user = getUserFromPrincipal(principal);
         if (user == null) return;
+        serverService.requireChannelPermission(channelId, user.getId(), ServerPermission.VOICE_CONNECT);
 
         // Xoá user khỏi danh sách
         List<String> participants = voiceParticipants.getOrDefault(channelId, new ArrayList<>());
@@ -87,7 +92,15 @@ public class VoiceWebSocketController {
      * Client gửi tới: /app/voice/signal
      */
     @MessageMapping("/voice/signal")
-    public void forwardSignal(@Payload VoiceSignalMessage signal) {
+    public void forwardSignal(@Payload VoiceSignalMessage signal, Principal principal) {
+        User user = getUserFromPrincipal(principal);
+        if (user == null) {
+            return;
+        }
+        if (signal.getChannelId() == null || signal.getChannelId().isBlank()) {
+            return;
+        }
+        serverService.requireChannelPermission(signal.getChannelId(), user.getId(), ServerPermission.VOICE_CONNECT);
         if (signal.getToUserId() == null) return;
 
         // Gửi tới user đích qua topic cá nhân (tránh dùng /user/ queue phức tạp)

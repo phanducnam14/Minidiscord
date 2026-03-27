@@ -1,7 +1,10 @@
 import React from 'react';
+import api from '../../api/axiosConfig';
 import useToastStore from '../../store/useToastStore';
+import useUnreadStore from '../../store/useUnreadStore';
 import ServerList from './ServerList';
 import ChannelSidebar from './ChannelSidebar';
+import NotificationPanel from './NotificationPanel';
 import ChatArea from '../chat/ChatArea';
 import VoiceChannel from '../voice/VoiceChannel';
 import useServerStore from '../../store/useServerStore';
@@ -10,10 +13,81 @@ import useServerStore from '../../store/useServerStore';
  * Layout 3 cột chính: ServerList | ChannelSidebar | Content
  */
 const MainLayout = ({ wsHook, webRTCHook }) => {
-  const { currentChannel } = useServerStore();
+  const {
+    currentChannel,
+    currentServer,
+    servers,
+    channels,
+    addServer,
+    setCurrentServer,
+    setCurrentChannel,
+    setChannels,
+  } = useServerStore();
   const { toasts, removeToast } = useToastStore();
+  const markNotificationReadLocal = useUnreadStore((state) => state.markNotificationReadLocal);
 
   const isVoice = currentChannel?.type === 'VOICE';
+
+  const handleMarkNotificationRead = async (notificationId) => {
+    if (!notificationId) {
+      return;
+    }
+
+    try {
+      await api.post(`/notifications/${notificationId}/read`);
+      markNotificationReadLocal(notificationId);
+    } catch (error) {
+      console.error('Loi danh dau thong bao da doc:', error);
+    }
+  };
+
+  const handleOpenNotification = async (notification) => {
+    if (!notification?.serverId || !notification?.channelId) {
+      return;
+    }
+
+    try {
+      let targetServer = servers.find((server) => server.id === notification.serverId);
+      if (!targetServer) {
+        const serverRes = await api.get(`/servers/${notification.serverId}`);
+        targetServer = serverRes.data;
+        addServer(targetServer);
+      }
+
+      let nextChannels = channels;
+      const shouldFetchChannels = currentServer?.id !== notification.serverId
+        || !channels.length
+        || !channels.some((channel) => channel.serverId === notification.serverId);
+
+      if (currentServer?.id !== notification.serverId) {
+        setCurrentServer(targetServer);
+      }
+
+      if (shouldFetchChannels) {
+        const channelsRes = await api.get(`/servers/${notification.serverId}/channels`);
+        nextChannels = channelsRes.data;
+        setChannels(nextChannels);
+      }
+
+      let targetChannel = nextChannels.find((channel) => channel.id === notification.channelId);
+      if (!targetChannel) {
+        const channelsRes = await api.get(`/servers/${notification.serverId}/channels`);
+        nextChannels = channelsRes.data;
+        setChannels(nextChannels);
+        targetChannel = nextChannels.find((channel) => channel.id === notification.channelId);
+      }
+
+      if (targetChannel) {
+        setCurrentChannel(targetChannel);
+      }
+
+      if (!notification.read) {
+        await handleMarkNotificationRead(notification.id);
+      }
+    } catch (error) {
+      console.error('Loi mo thong bao mention:', error);
+    }
+  };
 
   return (
     <div className="app-shell">
@@ -21,7 +95,7 @@ const MainLayout = ({ wsHook, webRTCHook }) => {
         {toasts.map(toast => (
           <div
             key={toast.id}
-            className={`toast-card ${toast.type === 'info' ? 'toast-card--info' : ''}`}
+            className={`toast-card ${toast.type === 'info' ? 'toast-card--info' : ''} ${toast.type === 'mention' ? 'toast-card--mention' : ''}`}
           >
             <span className="toast-card__icon">
               {toast.type === 'info' ? <InfoIcon /> : <BellIcon />}
@@ -38,6 +112,11 @@ const MainLayout = ({ wsHook, webRTCHook }) => {
           </div>
         ))}
       </div>
+
+      <NotificationPanel
+        onOpenNotification={handleOpenNotification}
+        onMarkRead={handleMarkNotificationRead}
+      />
 
       <ServerList />
       <ChannelSidebar wsHook={wsHook} webRTCHook={webRTCHook} />

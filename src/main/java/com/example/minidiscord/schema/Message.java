@@ -7,6 +7,10 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -28,11 +32,14 @@ public class Message {
 
     private boolean revoked = false; // Tin nhắn đã bị thu hồi
 
+    // Mention metadata chuẩn hóa từ content: <@userId>
+    private List<String> mentionedUserIds = new ArrayList<>();
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     // Reactions: emoji -> list of userIds
-    private java.util.Map<String, java.util.List<String>> reactions = new java.util.HashMap<>();
+    private Map<String, List<String>> reactions = new HashMap<>();
 
     public Message(String channelId, String senderId, String content, MessageType type,
                    String fileUrl, String fileName) {

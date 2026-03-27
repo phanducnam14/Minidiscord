@@ -1,36 +1,76 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import useServerStore from '../../store/useServerStore';
+import useUserStore from '../../store/useUserStore';
+import {
+  buildMemberDirectory,
+  createDisplayNameResolver,
+  messageMentionsUser,
+  parseMentionParts,
+} from '../../utils/mentionUtils';
 
 /**
- * Hiển thị một tin nhắn: TEXT / IMAGE / FILE / REVOKED
+ * Hien thi mot tin nhan: TEXT / IMAGE / FILE / REVOKED
  */
 const MessageItem = ({ message, isOwn, onRevoke, onReaction, currentUserId }) => {
+  const { currentServer } = useServerStore();
+  const { currentUser } = useUserStore();
+
   const [imgZoom, setImgZoom] = useState(false);
   const [showToolbar, setShowToolbar] = useState(false);
+
+  const memberDirectory = useMemo(
+    () => buildMemberDirectory(currentServer?.members || [], currentUser),
+    [currentServer?.members, currentUser]
+  );
+  const resolveDisplayName = useMemo(
+    () => createDisplayNameResolver(memberDirectory),
+    [memberDirectory]
+  );
 
   if (message.revoked) {
     return (
       <div style={{ fontStyle: 'italic', color: 'var(--discord-text-muted)', fontSize: 14, padding: '2px 0' }}>
-        Tin nhắn đã bị thu hồi.
+        Tin nhan da bi thu hoi.
       </div>
     );
   }
 
   const emojis = ['❤️', '👍', '😂', '😢', '🔥', '👏'];
+  const isMentioned = messageMentionsUser(message, currentUserId);
+
+  const renderMessageText = () => {
+    const parts = parseMentionParts(message.content || '');
+
+    if (!parts.length) {
+      return null;
+    }
+
+    return parts.map((part, index) => {
+      if (part.type === 'mention') {
+        return (
+          <span key={`mention-${part.userId}-${index}`} className="mention-chip mention-chip--message">
+            @{resolveDisplayName(part.userId)}
+          </span>
+        );
+      }
+
+      return <React.Fragment key={`text-${index}`}>{part.value}</React.Fragment>;
+    });
+  };
 
   return (
-    <div 
-      className="message-item-container"
+    <div
+      className={`message-item-container ${isMentioned ? 'message-item-container--mention' : ''}`}
       onMouseEnter={() => setShowToolbar(true)}
       onMouseLeave={() => setShowToolbar(false)}
       style={{ position: 'relative', marginBottom: 2, paddingRight: 40 }}
     >
-      {/* Message content */}
       <div style={{ position: 'relative', zIndex: 1 }}>
         {message.type === 'IMAGE' ? (
           <>
             <img
               src={message.fileUrl}
-              alt={message.fileName || 'Ảnh'}
+              alt={message.fileName || 'Anh'}
               style={{ maxWidth: 400, maxHeight: 300, borderRadius: 8, cursor: 'zoom-in', objectFit: 'contain', display: 'block', marginTop: 4 }}
               onClick={() => setImgZoom(true)}
             />
@@ -45,23 +85,23 @@ const MessageItem = ({ message, isOwn, onRevoke, onReaction, currentUserId }) =>
           </>
         ) : message.type === 'FILE' ? (
           <a
-            href={message.fileUrl} download={message.fileName}
+            href={message.fileUrl}
+            download={message.fileName}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'var(--discord-input-bg)', borderRadius: 8, padding: '10px 14px', marginTop: 4, color: 'var(--discord-text-primary)', textDecoration: 'none', border: '1px solid var(--discord-divider)' }}
           >
             <span style={{ fontSize: 24 }}>📄</span>
             <div>
               <div style={{ fontSize: 14, fontWeight: 500 }}>{message.fileName}</div>
-              <div style={{ fontSize: 12, color: 'var(--discord-accent)' }}>Tải xuống</div>
+              <div style={{ fontSize: 12, color: 'var(--discord-accent)' }}>Tai xuong</div>
             </div>
           </a>
         ) : (
-          <div style={{ fontSize: 15, color: 'var(--discord-text-primary)', wordBreak: 'break-word', lineHeight: 1.5 }}>
-            {message.content}
+          <div className="message-text">
+            {renderMessageText()}
           </div>
         )}
       </div>
 
-      {/* Reactions Display */}
       {message.reactions && Object.keys(message.reactions).length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
           {Object.entries(message.reactions).map(([emoji, userIds]) => {
@@ -79,7 +119,7 @@ const MessageItem = ({ message, isOwn, onRevoke, onReaction, currentUserId }) =>
                   userSelect: 'none'
                 }}
                 className="reaction-tag"
-                title={userIds.length + " người đã thả cảm xúc"}
+                title={`${userIds.length} nguoi da tha cam xuc`}
               >
                 <span>{emoji}</span>
                 <span style={{ color: hasReacted ? 'var(--discord-text-primary)' : 'var(--discord-text-muted)', fontWeight: 600 }}>
@@ -91,7 +131,6 @@ const MessageItem = ({ message, isOwn, onRevoke, onReaction, currentUserId }) =>
         </div>
       )}
 
-      {/* Toolbar on hover */}
       {showToolbar && (
         <div style={{
           position: 'absolute', top: -16, right: 0,
@@ -100,19 +139,17 @@ const MessageItem = ({ message, isOwn, onRevoke, onReaction, currentUserId }) =>
           boxShadow: '0 2px 4px rgba(0,0,0,0.2)', border: '1px solid var(--discord-divider)',
           zIndex: 10
         }}>
-          {/* Fast reactions */}
           <div style={{ display: 'flex', gap: 2, paddingRight: 4, borderRight: '1px solid var(--discord-divider)' }}>
-            {emojis.map(e => (
-              <button 
-                key={e} 
-                onClick={() => onReaction(message.id, e)}
+            {emojis.map((emoji) => (
+              <button
+                key={emoji}
+                onClick={() => onReaction(message.id, emoji)}
                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 16, padding: '2px', borderRadius: 4 }}
                 className="toolbar-btn"
-              >{e}</button>
+              >{emoji}</button>
             ))}
           </div>
-          
-          {/* Other actions */}
+
           {isOwn && (
             <button
               onClick={() => onRevoke(message.id)}

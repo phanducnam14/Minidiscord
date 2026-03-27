@@ -1,15 +1,22 @@
 import React, { useState } from 'react';
 import api from '../../api/axiosConfig';
 import useServerStore from '../../store/useServerStore';
+import { SERVER_PERMISSIONS, hasServerPermission } from '../../utils/serverPermissions';
 
 const CreateChannelModal = ({ type = 'TEXT', onClose }) => {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { currentServer, addChannel } = useServerStore();
+  const canCreateChannel = hasServerPermission(currentServer, SERVER_PERMISSIONS.CHANNEL_CREATE);
+
+  if (!currentServer || !canCreateChannel) {
+    return null;
+  }
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    if (!canCreateChannel) { return; }
     if (!name.trim()) { setError('Tên channel không được rỗng'); return; }
     setLoading(true);
     setError('');

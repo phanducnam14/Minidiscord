@@ -30,11 +30,11 @@ public class ChatWebSocketController {
         // Save message to database
         MessageDTO savedMessage = messageService.saveMessage(
             channelId,
-            serverId,
             message.getUserId(),
-            message.getUserName(),
-            message.getUserAvatar(),
-            message.getContent()
+            message.getContent(),
+            "TEXT",
+            null,
+            null
         );
         
         // Prepare response

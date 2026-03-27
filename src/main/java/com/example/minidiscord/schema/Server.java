@@ -26,6 +26,9 @@ public class Server {
     // Danh sách thành viên với role
     private List<ServerMember> members = new ArrayList<>();
 
+    // Danh sách role trong server (scope theo server)
+    private List<ServerRole> roles = new ArrayList<>();
+
     private LocalDateTime createdAt;
 
     public Server(String name, String iconUrl, String ownerId) {

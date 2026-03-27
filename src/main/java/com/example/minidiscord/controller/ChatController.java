@@ -2,8 +2,13 @@ package com.example.minidiscord.controller;
 
 import com.example.minidiscord.dto.ChatMessage;
 import com.example.minidiscord.dto.MessageDTO;
+import com.example.minidiscord.dto.UserRealtimeUpdateDTO;
+import com.example.minidiscord.schema.Channel;
+import com.example.minidiscord.schema.ServerPermission;
 import com.example.minidiscord.schema.User;
 import com.example.minidiscord.service.MessageService;
+import com.example.minidiscord.service.ServerService;
+import com.example.minidiscord.service.UnreadNotificationService;
 import com.example.minidiscord.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -21,6 +26,8 @@ import java.time.format.DateTimeFormatter;
 public class ChatController {
     private final SimpMessagingTemplate messagingTemplate;
     private final MessageService messageService;
+    private final ServerService serverService;
+    private final UnreadNotificationService unreadNotificationService;
     private final UserService userService;
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
@@ -37,6 +44,7 @@ public class ChatController {
         // Lấy thông tin user từ session
         User user = getUserFromPrincipal(principal);
         if (user == null) return;
+        serverService.requireChannelPermission(channelId, user.getId(), ServerPermission.MESSAGE_SEND);
 
         // Chỉ xử lý SEND
         if (chatMessage.getType() != ChatMessage.MessageType.SEND) return;
@@ -63,10 +71,27 @@ public class ChatController {
         broadcast.setFileUrl(saved.getFileUrl());
         broadcast.setFileName(saved.getFileName());
         broadcast.setMessageType(saved.getType());
+        broadcast.setMentionedUserIds(saved.getMentionedUserIds());
         broadcast.setTimestamp(saved.getCreatedAt() != null
             ? saved.getCreatedAt().format(FORMATTER) : LocalDateTime.now().format(FORMATTER));
 
         messagingTemplate.convertAndSend("/topic/channel/" + channelId, broadcast);
+
+        for (UserRealtimeUpdateDTO update : unreadNotificationService.applyMessageSideEffects(saved, user.getId())) {
+            messagingTemplate.convertAndSendToUser(
+                update.getRecipientGoogleId(),
+                "/queue/unread",
+                update.getUnreadSnapshot()
+            );
+
+            if (update.getMentionNotification() != null) {
+                messagingTemplate.convertAndSendToUser(
+                    update.getRecipientGoogleId(),
+                    "/queue/notifications",
+                    update.getMentionNotification()
+                );
+            }
+        }
     }
 
     /**
@@ -81,7 +106,10 @@ public class ChatController {
         User user = getUserFromPrincipal(principal);
         if (user == null) return;
 
-        messageService.revokeMessage(messageId, user.getId()).ifPresent(revoked -> {
+        Channel channel = serverService.requireChannelPermission(channelId, user.getId(), ServerPermission.MESSAGE_VIEW);
+        boolean canManageMessages = serverService.hasPermission(channel.getServerId(), user.getId(), ServerPermission.MESSAGE_MANAGE);
+
+        messageService.revokeMessage(channelId, messageId, user.getId(), canManageMessages).ifPresent(revoked -> {
             ChatMessage event = new ChatMessage();
             event.setType(ChatMessage.MessageType.REVOKE);
             event.setChannelId(channelId);
@@ -103,6 +131,7 @@ public class ChatController {
             Principal principal) {
         User user = getUserFromPrincipal(principal);
         if (user == null) return;
+        serverService.requireChannelPermission(channelId, user.getId(), ServerPermission.MESSAGE_SEND);
 
         ChatMessage typingEvent = new ChatMessage();
         typingEvent.setType(ChatMessage.MessageType.TYPING);
@@ -126,6 +155,7 @@ public class ChatController {
             Principal principal) {
         User user = getUserFromPrincipal(principal);
         if (user == null) return;
+        serverService.requireChannelPermission(channelId, user.getId(), ServerPermission.MESSAGE_REACT);
 
         String emoji = chatMessage.getContent();
         if (emoji == null || emoji.isEmpty()) return;
