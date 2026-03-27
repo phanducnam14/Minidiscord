@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import api from '../../api/axiosConfig';
 import useServerStore from '../../store/useServerStore';
+import { SERVER_PERMISSIONS, hasServerPermission } from '../../utils/serverPermissions';
 
 const ChannelSettingsModal = ({ channel, onClose }) => {
   const { currentServer, updateChannel, removeChannel } = useServerStore();
@@ -8,9 +9,16 @@ const ChannelSettingsModal = ({ channel, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const canUpdateChannel = hasServerPermission(currentServer, SERVER_PERMISSIONS.CHANNEL_UPDATE);
+  const canDeleteChannel = hasServerPermission(currentServer, SERVER_PERMISSIONS.CHANNEL_DELETE);
+
+  if (!canUpdateChannel && !canDeleteChannel) {
+    return null;
+  }
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+    if (!canUpdateChannel) { return; }
     if (!name.trim()) { setError('Tên kênh không được rỗng'); return; }
     setLoading(true);
     setError('');
@@ -29,6 +37,7 @@ const ChannelSettingsModal = ({ channel, onClose }) => {
   };
 
   const handleDelete = async () => {
+    if (!canDeleteChannel) { return; }
     setLoading(true);
     setError('');
     try {
@@ -71,16 +80,18 @@ const ChannelSettingsModal = ({ channel, onClose }) => {
 
             <div style={{ display: 'flex', gap: 12, justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <button type="button" onClick={() => setConfirmDelete(true)} className="btn-danger" style={{ padding: '10px 20px', fontSize: 14 }}>
-                  Xóa Kênh
-                </button>
+                {canDeleteChannel && (
+                  <button type="button" onClick={() => setConfirmDelete(true)} className="btn-danger" style={{ padding: '10px 20px', fontSize: 14 }}>
+                    Xóa Kênh
+                  </button>
+                )}
               </div>
               <div style={{ display: 'flex', gap: 12 }}>
                 <button type="button" onClick={onClose} style={{
                   padding: '10px 20px', background: 'transparent', border: 'none',
                   color: 'var(--discord-text-secondary)', cursor: 'pointer', fontSize: 14,
                 }}>Huỷ</button>
-                <button type="submit" className="btn-primary" disabled={loading}>
+                <button type="submit" className="btn-primary" disabled={loading || !canUpdateChannel}>
                   {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
                 </button>
               </div>
@@ -98,7 +109,7 @@ const ChannelSettingsModal = ({ channel, onClose }) => {
                 padding: '10px 20px', background: 'transparent', border: 'none',
                 color: 'var(--discord-text-secondary)', cursor: 'pointer', fontSize: 14,
               }}>Huỷ</button>
-              <button type="button" onClick={handleDelete} className="btn-danger" disabled={loading}>
+              <button type="button" onClick={handleDelete} className="btn-danger" disabled={loading || !canDeleteChannel}>
                 {loading ? 'Đang xóa...' : 'Xác nhận Xóa'}
               </button>
             </div>

@@ -1,5 +1,30 @@
 import { create } from 'zustand';
 
+const replaceServer = (servers, server) => {
+  const existingIndex = servers.findIndex((item) => item.id === server.id);
+
+  if (existingIndex === -1) {
+    return [...servers, server];
+  }
+
+  return servers.map((item) => (item.id === server.id ? server : item));
+};
+
+const updateCurrentServerField = (state, updater) => {
+  if (!state.currentServer) {
+    return {};
+  }
+
+  const nextCurrentServer = updater(state.currentServer);
+
+  return {
+    currentServer: nextCurrentServer,
+    servers: state.servers.map((server) => (
+      server.id === nextCurrentServer.id ? nextCurrentServer : server
+    )),
+  };
+};
+
 const useServerStore = create((set) => ({
   servers: [],
   currentServer: null,
@@ -8,12 +33,20 @@ const useServerStore = create((set) => ({
   isLoadingServers: false,
   isLoadingChannels: false,
 
-  setServers: (servers) => set({ servers }),
-  addServer: (server) => set((state) => ({ servers: [...state.servers, server] })),
+  setServers: (servers) => set((state) => ({
+    servers,
+    currentServer: state.currentServer
+      ? servers.find((server) => server.id === state.currentServer.id) || state.currentServer
+      : null,
+  })),
+  addServer: (server) => set((state) => ({
+    servers: replaceServer(state.servers, server),
+    currentServer: state.currentServer?.id === server.id ? server : state.currentServer,
+  })),
   updateServer: (updated) => set((state) => {
     const isCurrent = state.currentServer?.id === updated.id;
     return {
-      servers: state.servers.map((s) => s.id === updated.id ? updated : s),
+      servers: replaceServer(state.servers, updated),
       currentServer: isCurrent ? updated : state.currentServer,
     };
   }),
@@ -27,7 +60,30 @@ const useServerStore = create((set) => ({
     };
   }),
 
-  setCurrentServer: (server) => set({ currentServer: server, channels: [], currentChannel: null }),
+  setCurrentServer: (server) => set((state) => ({
+    currentServer: server ? state.servers.find((item) => item.id === server.id) || server : null,
+    channels: [],
+    currentChannel: null,
+  })),
+
+  updateCurrentServerMembers: (members) => set((state) => updateCurrentServerField(state, (server) => ({
+    ...server,
+    members,
+  }))),
+  updateCurrentServerMember: (member) => set((state) => updateCurrentServerField(state, (server) => ({
+    ...server,
+    members: (server.members || []).some((item) => item.userId === member.userId)
+      ? server.members.map((item) => (item.userId === member.userId ? member : item))
+      : [...(server.members || []), member],
+  }))),
+  removeCurrentServerMember: (memberUserId) => set((state) => updateCurrentServerField(state, (server) => ({
+    ...server,
+    members: (server.members || []).filter((member) => member.userId !== memberUserId),
+  }))),
+  updateCurrentServerRoles: (roles) => set((state) => updateCurrentServerField(state, (server) => ({
+    ...server,
+    roles,
+  }))),
 
   setChannels: (channels) => set({ channels }),
   addChannel: (channel) => set((state) => ({ channels: [...state.channels, channel] })),

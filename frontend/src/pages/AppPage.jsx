@@ -4,7 +4,11 @@ import MainLayout from '../components/layout/MainLayout';
 import useWebSocket from '../hooks/useWebSocket';
 import useWebRTC from '../hooks/useWebRTC';
 import useUserStore from '../store/useUserStore';
+import useServerStore from '../store/useServerStore';
+import useToastStore from '../store/useToastStore';
+import useUnreadStore from '../store/useUnreadStore';
 import api from '../api/axiosConfig';
+import { replaceMentionTokens } from '../utils/mentionUtils';
 
 /**
  * AppPage: Màn hình chính sau khi đã đăng nhập
@@ -13,7 +17,14 @@ import api from '../api/axiosConfig';
 const AppPage = () => {
   const navigate = useNavigate();
   const { currentUser, setCurrentUser, isLoading, setLoading } = useUserStore();
+  const currentServer = useServerStore((state) => state.currentServer);
+  const addToast = useToastStore((state) => state.addToast);
+  const setUnreadSnapshot = useUnreadStore((state) => state.setSnapshot);
+  const mergeServerSummary = useUnreadStore((state) => state.mergeServerSummary);
+  const setNotifications = useUnreadStore((state) => state.setNotifications);
+  const upsertNotification = useUnreadStore((state) => state.upsertNotification);
   const wsHook = useWebSocket();
+  const subscribe = wsHook.subscribe;
 
   const webRTCHook = useWebRTC({
     publish: wsHook.publish,
@@ -51,6 +62,91 @@ const AppPage = () => {
     };
     fetchMe();
   }, [navigate, setCurrentUser, setLoading]);
+
+  useEffect(() => {
+    if (!currentUser) {
+      return undefined;
+    }
+
+    let isActive = true;
+
+    const hydrateRealtimeState = async () => {
+      try {
+        const [snapshotRes, notificationsRes] = await Promise.all([
+          api.get('/channels/unread'),
+          api.get('/notifications'),
+        ]);
+
+        if (!isActive) {
+          return;
+        }
+
+        setUnreadSnapshot(snapshotRes.data);
+        setNotifications(notificationsRes.data);
+      } catch (error) {
+        console.error('Khong the dong bo unread va notifications:', error);
+      }
+    };
+
+    hydrateRealtimeState();
+
+    return () => {
+      isActive = false;
+    };
+  }, [currentUser, setNotifications, setUnreadSnapshot]);
+
+  useEffect(() => {
+    if (!currentUser || !currentServer?.id) {
+      return undefined;
+    }
+
+    let isActive = true;
+
+    const refreshServerUnread = async () => {
+      try {
+        const res = await api.get(`/servers/${currentServer.id}/unread`);
+        if (isActive) {
+          mergeServerSummary(res.data);
+        }
+      } catch (error) {
+        console.error('Khong the tai unread summary cho server hien tai:', error);
+      }
+    };
+
+    refreshServerUnread();
+
+    return () => {
+      isActive = false;
+    };
+  }, [currentServer?.id, currentUser, mergeServerSummary]);
+
+  useEffect(() => {
+    if (!currentUser) {
+      return undefined;
+    }
+
+    const unsubscribeUnread = subscribe('/user/queue/unread', (snapshot) => {
+      setUnreadSnapshot(snapshot);
+    });
+    const unsubscribeNotifications = subscribe('/user/queue/notifications', (notification) => {
+      upsertNotification(notification);
+
+      const preview = replaceMentionTokens(
+        notification?.preview || '',
+        (userId) => userId === currentUser.id ? 'ban' : 'thanh vien'
+      );
+      const message = preview
+        ? `${notification.senderName} nhac ban: ${preview}`
+        : `${notification.senderName} nhac ban trong mot tin nhan moi.`;
+
+      addToast(message, 'mention');
+    });
+
+    return () => {
+      unsubscribeUnread?.();
+      unsubscribeNotifications?.();
+    };
+  }, [addToast, currentUser, setUnreadSnapshot, subscribe, upsertNotification]);
 
   if (isLoading) {
     return (

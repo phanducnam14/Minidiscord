@@ -9,19 +9,17 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class MessageDTO {
+public class MentionNotificationDTO {
     private String id;
+    private String userId;
+    private String serverId;
     private String channelId;
+    private String messageId;
     private String senderId;
     private String senderName;
     private String senderAvatar;
-    private String content;
-    private String type;      // TEXT, IMAGE, FILE
-    private String fileUrl;
-    private String fileName;
-    private boolean revoked;
+    private String preview;
+    private boolean read;
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-    private java.util.List<String> mentionedUserIds;
-    private java.util.Map<String, java.util.List<String>> reactions;
+    private LocalDateTime readAt;
 }

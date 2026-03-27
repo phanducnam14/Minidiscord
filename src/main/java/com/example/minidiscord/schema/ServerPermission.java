@@ -1,0 +1,20 @@
+package com.example.minidiscord.schema;
+
+public enum ServerPermission {
+    SERVER_VIEW,
+    SERVER_UPDATE,
+    SERVER_DELETE,
+    MEMBER_VIEW,
+    MEMBER_MANAGE,
+    ROLE_VIEW,
+    ROLE_MANAGE,
+    CHANNEL_VIEW,
+    CHANNEL_CREATE,
+    CHANNEL_UPDATE,
+    CHANNEL_DELETE,
+    MESSAGE_VIEW,
+    MESSAGE_SEND,
+    MESSAGE_REACT,
+    MESSAGE_MANAGE,
+    VOICE_CONNECT
+}

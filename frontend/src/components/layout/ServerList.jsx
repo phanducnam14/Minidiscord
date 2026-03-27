@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import useServerStore from '../../store/useServerStore';
 import useUserStore from '../../store/useUserStore';
+import useUnreadStore from '../../store/useUnreadStore';
 import api from '../../api/axiosConfig';
 import CreateServerModal from '../modals/CreateServerModal';
 
@@ -10,7 +11,12 @@ import CreateServerModal from '../modals/CreateServerModal';
 const ServerList = () => {
   const { servers, currentServer, setServers, setCurrentServer, setChannels, setLoadingServers } = useServerStore();
   const { currentUser } = useUserStore();
+  const unreadServers = useUnreadStore((state) => state.snapshot.servers);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const unreadByServerId = useMemo(
+    () => new Map(unreadServers.map((summary) => [summary.serverId, summary])),
+    [unreadServers]
+  );
 
   useEffect(() => {
     if (!currentUser) return;
@@ -62,21 +68,35 @@ const ServerList = () => {
         <div className="server-divider" />
 
         <div className="server-rail__list">
-          {servers.map((server) => (
-            <button
-              type="button"
-              key={server.id}
-              className={`server-icon ${currentServer?.id === server.id ? 'active' : ''}`}
-              onClick={() => handleSelectServer(server)}
-              title={server.name}
-            >
-              {server.iconUrl ? (
-                <img src={server.iconUrl} alt={server.name} className="server-icon__image" />
-              ) : (
-                <span className="server-icon__label">{getServerInitials(server.name)}</span>
-              )}
-            </button>
-          ))}
+          {servers.map((server) => {
+            const unreadSummary = unreadByServerId.get(server.id);
+
+            return (
+              <button
+                type="button"
+                key={server.id}
+                className={`server-icon ${currentServer?.id === server.id ? 'active' : ''}`}
+                onClick={() => handleSelectServer(server)}
+                title={server.name}
+              >
+                {server.iconUrl ? (
+                  <img src={server.iconUrl} alt={server.name} className="server-icon__image" />
+                ) : (
+                  <span className="server-icon__label">{getServerInitials(server.name)}</span>
+                )}
+                {(unreadSummary?.mentionCount || unreadSummary?.unreadCount) ? (
+                  <span className="server-icon__badges">
+                    {Boolean(unreadSummary?.mentionCount) && (
+                      <span className="server-badge server-badge--mention">@{unreadSummary.mentionCount}</span>
+                    )}
+                    {Boolean(unreadSummary?.unreadCount) && (
+                      <span className="server-badge server-badge--unread">{unreadSummary.unreadCount}</span>
+                    )}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
         </div>
 
         <button
