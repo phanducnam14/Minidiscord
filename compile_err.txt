@@ -1,0 +1,99 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ----------------------< com.example:minidiscord >-----------------------
+[INFO] Building minidiscord 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ minidiscord ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 5 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ minidiscord ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 42 source files with javac [debug parameters release 17] to target\classes
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[3,38] cannot find symbol
+  symbol:   class VoiceSession
+  location: package com.example.minidiscord.schema
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[4,39] cannot find symbol
+  symbol:   class VoiceService
+  location: package com.example.minidiscord.service
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[17,13] cannot find symbol
+  symbol:   class VoiceService
+  location: class com.example.minidiscord.controller.VoiceController
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[20,27] cannot find symbol
+  symbol:   class VoiceSession
+  location: class com.example.minidiscord.controller.VoiceController
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[28,27] cannot find symbol
+  symbol:   class VoiceSession
+  location: class com.example.minidiscord.controller.VoiceController
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[37,27] cannot find symbol
+  symbol:   class VoiceSession
+  location: class com.example.minidiscord.controller.VoiceController
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[50,27] cannot find symbol
+  symbol:   class VoiceSession
+  location: class com.example.minidiscord.controller.VoiceController
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[61,27] cannot find symbol
+  symbol:   class VoiceSession
+  location: class com.example.minidiscord.controller.VoiceController
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[73,27] cannot find symbol
+  symbol:   class VoiceSession
+  location: class com.example.minidiscord.controller.VoiceController
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[85,27] cannot find symbol
+  symbol:   class VoiceSession
+  location: class com.example.minidiscord.controller.VoiceController
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[94,32] cannot find symbol
+  symbol:   class VoiceSession
+  location: class com.example.minidiscord.controller.VoiceController
+[INFO] 11 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  3.594 s
+[INFO] Finished at: 2026-03-21T09:30:38+07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.14.1:compile (default-compile) on project minidiscord: Compilation failure: Compilation failure: 
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[3,38] cannot find symbol
+[ERROR]   symbol:   class VoiceSession
+[ERROR]   location: package com.example.minidiscord.schema
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[4,39] cannot find symbol
+[ERROR]   symbol:   class VoiceService
+[ERROR]   location: package com.example.minidiscord.service
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[17,13] cannot find symbol
+[ERROR]   symbol:   class VoiceService
+[ERROR]   location: class com.example.minidiscord.controller.VoiceController
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[20,27] cannot find symbol
+[ERROR]   symbol:   class VoiceSession
+[ERROR]   location: class com.example.minidiscord.controller.VoiceController
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[28,27] cannot find symbol
+[ERROR]   symbol:   class VoiceSession
+[ERROR]   location: class com.example.minidiscord.controller.VoiceController
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[37,27] cannot find symbol
+[ERROR]   symbol:   class VoiceSession
+[ERROR]   location: class com.example.minidiscord.controller.VoiceController
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[50,27] cannot find symbol
+[ERROR]   symbol:   class VoiceSession
+[ERROR]   location: class com.example.minidiscord.controller.VoiceController
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[61,27] cannot find symbol
+[ERROR]   symbol:   class VoiceSession
+[ERROR]   location: class com.example.minidiscord.controller.VoiceController
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[73,27] cannot find symbol
+[ERROR]   symbol:   class VoiceSession
+[ERROR]   location: class com.example.minidiscord.controller.VoiceController
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[85,27] cannot find symbol
+[ERROR]   symbol:   class VoiceSession
+[ERROR]   location: class com.example.minidiscord.controller.VoiceController
+[ERROR] /D:/Minidiscord-feature2/src/main/java/com/example/minidiscord/controller/VoiceController.java:[94,32] cannot find symbol
+[ERROR]   symbol:   class VoiceSession
+[ERROR]   location: class com.example.minidiscord.controller.VoiceController
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
